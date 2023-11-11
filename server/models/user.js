@@ -3,28 +3,38 @@ const bcrypt = require('bcrypt');
 
 
 const userSchema = new mongoose.Schema({
-    username: { type: String, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     salt: { type: String, required: true },
-    name: { type: String, required: true },
+    name: { type: String },
 }, {
     timestamps: true
 });
 
-userSchema.methods.setUsername = function (email) {
-    this.username = email.substring(0, email.indexOf('@'));
-}
+
+
+
+
+
+
+// Functions
 
 userSchema.methods.setPassword = async function (password) {
-    // Creating a unique salt for a particular user
     this.salt = await bcrypt.genSalt(10);
-    // Hashing user's password
     this.password = await bcrypt.hash(password, this.salt);
 };
 
 userSchema.methods.checkPassword = async function (password) {
     return (await bcrypt.compare(password, this.password));
+};
+
+userSchema.methods.setName = async function () {
+    return this.name = this.email.substring(0, this.email.indexOf('@')) + (Date.now()) % 10000;
+};
+
+userSchema.methods.setGooglePassword = async function () {
+    this.salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(await bcrypt.genSalt(20), this.salt);
 };
 
 
