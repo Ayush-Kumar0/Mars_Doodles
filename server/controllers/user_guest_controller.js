@@ -4,13 +4,21 @@ const jwt = require('jsonwebtoken');
 const { default: mongoose } = require('mongoose');
 
 module.exports.logout = async function (req, res) {
-    res.cookie('auth-token', '', { expires: Date.now() }, {
+    res.cookie('auth-token', '', {
         secure: true,
         sameSite: 'None',
         httpOnly: true,
+        maxAge: 0,
         // domain: process.env.COOKIE_DOMAIN
     });
-    res.status(200).json({});
+    if (req.guest) {
+        try {
+            await Guest.findByIdAndDelete(req.guest._id);
+        } catch (err) {
+            console.log(err);
+        }
+    }
+    return res.status(200).json({});
 }
 
 module.exports.exists = async function (req, res) {
@@ -21,28 +29,31 @@ module.exports.exists = async function (req, res) {
                     let data = {
                         type: 'user',
                         user: {
-                            _id: user._id,
+                            // _id: user._id,
                             name: user.name,
-                            email: user.email
+                            email: user.email,
+                            picture: user.picture
                         }
                     };
-                    return res.status(200).json({});
+                    return res.status(200).json(data);
                 }
                 else {
-                    res.cookie('auth-token', '', { expires: Date.now() }, {
+                    res.cookie('auth-token', '', {
                         secure: true,
                         sameSite: 'None',
                         httpOnly: true,
+                        maxAge: 0,
                         // domain: process.env.COOKIE_DOMAIN
                     });
                     return res.status(403).json({});
                 }
             }).catch(err => {
                 console.log(err);
-                res.cookie('auth-token', '', { expires: Date.now() }, {
+                res.cookie('auth-token', '', {
                     secure: true,
                     sameSite: 'None',
                     httpOnly: true,
+                    maxAge: 0,
                     // domain: process.env.COOKIE_DOMAIN
                 });
                 return res.status(403).json({});
@@ -54,32 +65,34 @@ module.exports.exists = async function (req, res) {
                     let data = {
                         type: 'guest',
                         guest: {
-                            _id: guest._id,
+                            // _id: guest._id,
                             name: guest.name,
                         }
                     };
-                    return res.status(200).json({});
+                    return res.status(200).json(data);
                 }
                 else {
-                    res.cookie('auth-token', '', { expires: Date.now() }, {
+                    res.cookie('auth-token', '', {
                         secure: true,
                         sameSite: 'None',
                         httpOnly: true,
+                        maxAge: 0,
                         // domain: process.env.COOKIE_DOMAIN
                     });
                     return res.status(403).json({});
                 }
             }).catch(err => {
                 console.log(err);
-                res.cookie('auth-token', '', { expires: Date.now() }, {
+                res.cookie('auth-token', '', {
                     secure: true,
                     sameSite: 'None',
                     httpOnly: true,
+                    maxAge: 0,
                     // domain: process.env.COOKIE_DOMAIN
                 });
                 return res.status(403).json({});
             });
     } else {
-        return res.status(401).json(null);
+        return res.status(401).json({});
     }
 }

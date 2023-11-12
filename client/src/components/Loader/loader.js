@@ -26,6 +26,7 @@ const LoadingModalWrapper = styled.div`
   justify-content: center;
   align-items: center;
   animation: ${fadeIn} 0.3s ease-in-out;
+  z-index: 100;
 `;
 
 const ModalContent = styled.div`

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1080" height="1080" viewBox="0 0 1080 1080" xml:space="preserve">
+<desc>Created with Fabric.js 5.2.4</desc>
+<defs>
+</defs>
+<g transform="matrix(1 0 0 1 540 540)" id="7ee312a1-6bf2-460e-a1f8-be08fceda21b"  >
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1; visibility: hidden;" vector-effect="non-scaling-stroke"  x="-540" y="-540" rx="0" ry="0" width="1080" height="1080" />
+</g>
+<g transform="matrix(1 0 0 1 540 540)" id="0202304a-cf26-4cca-9770-b310ffe0e9c8"  >
+</g>
+<g transform="matrix(1 0 0 1 540 540)" id="78ca5191-9d5f-4caf-af5a-894f8556afc0"  >
+<path style="stroke: rgb(0,0,0); stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(88,87,87); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  transform=" translate(-480, 480)" d="M 239.5 -276.5 Q 291.5 -315 351.75 -336.5 Q 412 -358 480 -358 Q 548 -358 608.25 -336.5 Q 668.5 -315 720.5 -276.5 Q 757 -319 776 -370.385 Q 795 -421.77 795 -480.073 Q 795 -611.5 703.25 -703.25 Q 611.5 -795 480 -795 Q 348.5 -795 256.75 -703.25 Q 165 -611.5 165 -480.073 Q 165 -421.77 184 -370.385 Q 203 -319 239.5 -276.5 Z M 480.111 -442 Q 422 -442 382 -481.889 Q 342 -521.779 342 -579.889 Q 342 -638 381.889 -678 Q 421.779 -718 479.889 -718 Q 538 -718 578 -678.111 Q 618 -638.221 618 -580.111 Q 618 -522 578.111 -482 Q 538.221 -442 480.111 -442 Z M 480 -90 Q 399.093 -90 327.935 -120.763 Q 256.776 -151.526 204.138 -204.263 Q 151.5 -257 120.75 -328.087 Q 90 -399.175 90 -480 Q 90 -560.907 120.763 -632.065 Q 151.526 -703.224 204.263 -755.8620000000001 Q 257 -808.5 328.087 -839.25 Q 399.175 -870 480 -870 Q 560.907 -870 632.065 -839.237 Q 703.224 -808.4739999999999 755.8620000000001 -755.737 Q 808.5 -703 839.25 -631.913 Q 870 -560.825 870 -480 Q 870 -399.093 839.237 -327.935 Q 808.4739999999999 -256.776 755.737 -204.138 Q 703 -151.5 631.913 -120.75 Q 560.825 -90 480 -90 Z M 480 -165 Q 532 -165 577.75 -180 Q 623.5 -195 664 -224 Q 623.5 -252.5 577.75 -267.75 Q 532 -283 480.06 -283 Q 428.12 -283 382.06 -268 Q 336 -253 296 -224 Q 336.5 -195 382.25 -180 Q 428 -165 480 -165 Z M 480 -517 Q 506.5 -517 524.75 -535.25 Q 543 -553.5 543 -580 Q 543 -606.5 524.75 -624.75 Q 506.5 -643 480 -643 Q 453.5 -643 435.25 -624.75 Q 417 -606.5 417 -580 Q 417 -553.5 435.25 -535.25 Q 453.5 -517 480 -517 Z M 480 -580 Z M 480 -224 Z" stroke-linecap="round" />
+</g>
+</svg>

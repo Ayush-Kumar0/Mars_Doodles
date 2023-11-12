@@ -17,6 +17,7 @@ const userExists = async (nav, setLoading, setPlayer) => {
         let body = await result.clone().json();
         console.log(body);
         // Setting player and Navigating to required page
+        // Do not redirect when accessing the profile page of a user
         if (result.status === 200) {
             setPlayer(body);
             if (body.type === 'user')

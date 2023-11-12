@@ -11,8 +11,6 @@ module.exports = async (req, res, next) => {
             req.user = data.user;
         else if (data.type === 'guest')
             req.guest = data.guest;
-        else
-            return res.status(401).json({});
         next();
     } catch (err) {
         return res.status(500).json({});

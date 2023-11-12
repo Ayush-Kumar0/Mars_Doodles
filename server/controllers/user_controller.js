@@ -1,9 +1,11 @@
 const User = require('../models/user');
+const Guest = require('../models/guest');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 
 module.exports.sendCode = async function (req, res) { }
+
 async function emailExists(email) {
     try {
         async function codeToMail(email) {
@@ -59,6 +61,7 @@ module.exports.create = async function (req, res) {
                 // Create user
                 user = new User({ email });
                 await user.setPassword(password);
+                await user.setProfileImg();
                 await user.setName();
                 user.save()
                     .then(async user => {
@@ -78,6 +81,15 @@ module.exports.create = async function (req, res) {
                             httpOnly: true,
                             // domain: process.env.COOKIE_DOMAIN
                         });
+                        // Delete guest from db if guest is signing up
+                        if (req.guest && req.guest._id) {
+                            try {
+                                await Guest.findByIdAndDelete(req.guest._id);
+                            } catch (err) {
+                                console.log(err);
+                            }
+                        }
+                        // Return to client
                         return res.status(200).json({
                             message: 'Signup successful', type: 'success',
                             player: {
@@ -125,6 +137,15 @@ module.exports.createSession = function (req, res) {
                     httpOnly: true,
                     // domain: process.env.COOKIE_DOMAIN
                 });
+                // Delete guest from db if guest is signing in
+                if (req.guest && req.guest._id) {
+                    try {
+                        await Guest.findByIdAndDelete(req.guest._id);
+                    } catch (err) {
+                        console.log(err);
+                    }
+                }
+                // Return to client
                 return res.status(200).json({
                     message: 'Signin successful', type: 'success',
                     player: {
@@ -184,13 +205,23 @@ module.exports.googleSignin = async function (req, res) {
                     httpOnly: true,
                     // domain: process.env.COOKIE_DOMAIN
                 });
+                // Delete guest from db if guest is signing in
+                if (req.guest && req.guest._id) {
+                    try {
+                        await Guest.findByIdAndDelete(req.guest._id);
+                    } catch (err) {
+                        console.log(err);
+                    }
+                }
+                // Return to client
                 return res.status(200).json({
                     message: 'Signin successful', type: 'success',
                     player: {
                         type: 'user',
                         user: {
                             name: user.name,
-                            email: user.email
+                            email: user.email,
+                            picture: user.picture
                         }
                     }
                 });
@@ -198,6 +229,7 @@ module.exports.googleSignin = async function (req, res) {
                 // Account not present
                 user = new User({ email, name: payload['name'] });
                 await user.setGooglePassword();
+                await user.setProfileImg(payload['picture']);
                 user.save()
                     .then(async user => {
                         // Correct response to client
@@ -209,21 +241,29 @@ module.exports.googleSignin = async function (req, res) {
                                 email: user.email
                             }
                         };
-                        console.log(data);
                         const authtoken = jwt.sign(data, process.env.JWT_SECRET);
                         res.cookie('auth-token', authtoken, {
                             secure: true,
                             sameSite: 'None',
                             httpOnly: true,
                             // domain: process.env.COOKIE_DOMAIN
-                        });
+                        });// Delete guest from db if guest is signing in
+                        if (req.guest && req.guest._id) {
+                            try {
+                                await Guest.findByIdAndDelete(req.guest._id);
+                            } catch (err) {
+                                console.log(err);
+                            }
+                        }
+                        // Return to client
                         return res.status(200).json({
                             message: 'Signin successful', type: 'success',
                             player: {
                                 type: 'user',
                                 user: {
                                     name: user.name,
-                                    email: user.email
+                                    email: user.email,
+                                    picture: user.picture
                                 }
                             }
                         });
@@ -238,4 +278,32 @@ module.exports.googleSignin = async function (req, res) {
             console.log(err);
             return res.status(500).json({ message: 'Server error', type: 'error' });
         });
+}
+
+
+
+
+
+// Change user's display name (name property)
+module.exports.changeName = function (req, res) {
+    const { name } = req.body;
+    if (name && req.user) {
+        User.findByIdAndUpdate(req.user._id, { $set: { name: name } }, { new: true })
+            .then(async user => {
+                let data = {
+                    type: 'user',
+                    user: {
+                        name: user.name,
+                        email: user.email
+                    }
+                }
+                return res.status(200).json(data);
+            })
+            .catch(err => {
+                console.log(err);
+                return res.status(500).json({ message: 'Server error', type: 'error' });
+            });
+    } else {
+        return res.status(401).json({});
+    }
 }

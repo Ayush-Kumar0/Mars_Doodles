@@ -7,9 +7,15 @@ body {
     font-family: 'Roboto', sans-serif;
 }
 
+* {
+    box-sizing: border-box;
+}
+
 :root {
     --whitesmoke: #f5f5f5;
     --cotton: #cbcbcb;
     --obsidian: #040203;
     --charcoal: #28231d;
+    --primary: #af4b4c;
+    --navbar_height: 70px;
 }

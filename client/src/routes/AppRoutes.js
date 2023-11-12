@@ -8,14 +8,16 @@ import Signin from '../pages/Signin';
 import Signup from '../pages/Signup';
 
 function AppRoutes() {
-    const [user] = useContext(authContext);
+    const [player, setPlayer] = useContext(authContext);
     return (
         <Routes>
-            <Route path='/' element={<Home />} />
-            <Route path='/signin' element={<Signin />} />
-            <Route path='/signup' element={<Signup />} />
-            <Route path='/guest' element={<Guest />} />
-            <Route path='/user' element={<User />} />
+            {(player.type === null || player.type === undefined || player.type === 'guest') && <>
+                <Route path='/' element={<Home />} />
+                <Route path='/signin' element={<Signin />} />
+                <Route path='/signup' element={<Signup />} />
+            </>}
+            {player.type === 'user' && <Route path='/user' element={<User />} />}
+            {player.type === 'guest' && <Route path='/guest' element={<Guest />} />}
         </Routes>
     );
 }

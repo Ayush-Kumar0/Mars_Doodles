@@ -6,16 +6,16 @@ const userGuestController = require('../controllers/user_guest_controller');
 const fetchToken = require('../middlewares/fetchToken');
 
 // User authentication
-router.post('/signup', userController.create);
-router.post('/signin', userController.createSession);
-router.post('/googlesignin', userController.googleSignin);
+router.post('/signup', fetchToken, userController.create);
+router.post('/signin', fetchToken, userController.createSession);
+router.post('/googlesignin', fetchToken, userController.googleSignin);
 // router.post('/sendcode', userController.sendCode);
 
 // Guest authentication
 router.get('/guest', guestController.create);
 
 //Logout
-router.get('/logout', userGuestController.logout);
+router.get('/logout', fetchToken, userGuestController.logout);
 // existence of any account (guest or user)
 router.get('/exists', fetchToken, userGuestController.exists);
 
