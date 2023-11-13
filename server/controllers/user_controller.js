@@ -294,7 +294,8 @@ module.exports.changeName = function (req, res) {
                     type: 'user',
                     user: {
                         name: user.name,
-                        email: user.email
+                        email: user.email,
+                        picture: user.picture
                     }
                 }
                 return res.status(200).json(data);

@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 module.exports = async (req, res, next) => {
     const token = req.cookies['auth-token'];
     if (!token) {
-        return res.status(401).json({});
+        return next();
     }
     try {
         const data = jwt.verify(token, process.env.JWT_SECRET);
@@ -11,8 +11,8 @@ module.exports = async (req, res, next) => {
             req.user = data.user;
         else if (data.type === 'guest')
             req.guest = data.guest;
-        next();
+        return next();
     } catch (err) {
-        return res.status(500).json({});
+        return next();
     }
 }
