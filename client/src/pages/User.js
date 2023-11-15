@@ -5,10 +5,13 @@ import Start from '../components/Player/Start';
 import authContext from '../contexts/auth/authContext';
 import { toast } from 'react-toastify';
 import LoadingModal from '../components/Loader/loader';
+import Modal1 from '../components/Modals/Modal1';
+import Options from '../components/Modals/Options';
 
 function User() {
     const [player, setPlayer] = useContext(authContext);
     const [loading, setLoading] = useState(true);
+    const [optionsVisible, setOptionsVisible] = useState(false);
 
     useEffect(() => {
         setLoading(false);
@@ -45,6 +48,20 @@ function User() {
         });
     }
 
+    function handleOptionsOpen(e) {
+        console.log(!optionsVisible);
+        setOptionsVisible(!optionsVisible);
+    }
+
+    const playButtonPressed = (e) => {
+        // START the game
+        console.log('play');
+    }
+
+
+
+
+
     return (
         <>
             <Navbar />
@@ -53,12 +70,23 @@ function User() {
                     player_name={(player && player.user && player.user.name) ? player.user.name : ''}
                     changeNameHandler={changeNameHandler}
                     picture={(player && player.user && player.user.picture) ? player.user.picture : '/assets/no_profile_picture.svg'}
+                    handleOptionsButtonClick={handleOptionsOpen}
+                    playButtonPressed={playButtonPressed}
                 />
             </Usercontainer>
             {loading === true && <LoadingModal visible='visible' />}
+            {optionsVisible && <Modal1 isOpen={optionsVisible} setOpen={handleOptionsOpen}>
+                <Options />
+            </Modal1>}
         </>
     );
 }
+
+
+
+
+
+
 
 const Usercontainer = styled.div`
     padding-top: var(--navbar_height);

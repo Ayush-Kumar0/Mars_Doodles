@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 
-function Start({ player_name, changeNameHandler, picture }) {
+
+function Start(props) {
+    const { player_name,
+        changeNameHandler,
+        picture,
+        handleOptionsButtonClick,
+        playButtonPressed
+    } = props;
+
     const [name, setName] = useState(player_name);
 
     const keyDownHandler = (e) => {
@@ -19,6 +27,7 @@ function Start({ player_name, changeNameHandler, picture }) {
         else
             changeNameHandler(name, setName);
     }
+
     return (
         <Startcontainer>
             <div className='profile-photo'>
@@ -30,8 +39,8 @@ function Start({ player_name, changeNameHandler, picture }) {
                     onKeyDown={keyDownHandler} onBlur={blurHandler} />
             </div>
             <div className='play-div'>
-                <Button>Play</Button>
-                <Button><svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M200-200v-80h560v80H200Zm14-160 266-400 266 400H214Zm266-80Zm-118 0h236L480-616 362-440Z" /></svg></Button>
+                <Button onClick={playButtonPressed}>Play</Button>
+                <Button onClick={handleOptionsButtonClick}><svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M200-200v-80h560v80H200Zm14-160 266-400 266 400H214Zm266-80Zm-118 0h236L480-616 362-440Z" /></svg></Button>
             </div>
             <div className='buttons-div'>
                 <Button>Create</Button>

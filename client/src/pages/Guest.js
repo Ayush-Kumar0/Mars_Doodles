@@ -5,10 +5,15 @@ import Start from '../components/Player/Start';
 import authContext from '../contexts/auth/authContext';
 import { toast } from 'react-toastify';
 import LoadingModal from '../components/Loader/loader';
+import Modal1 from '../components/Modals/Modal1';
+import Options from '../components/Modals/Options';
+import PublicGame from '../socket/publicGame';
+
 
 function Guest() {
     const [player, setPlayer] = useContext(authContext);
     const [loading, setLoading] = useState(true);
+    const [optionsVisible, setOptionsVisible] = useState(false);
 
     useEffect(() => {
         setLoading(false);
@@ -45,6 +50,20 @@ function Guest() {
         });
     }
 
+    function handleOptionsOpen(e) {
+        setOptionsVisible(!optionsVisible);
+    }
+
+
+    // START the public game on 'PLAY'
+    const playButtonPressed = (e) => {
+        const publicGame = new PublicGame();
+        publicGame.getRoom();
+    }
+
+
+
+
     return (
         <>
             <Navbar />
@@ -53,12 +72,24 @@ function Guest() {
                     player_name={(player && player.guest && player.guest.name) ? player.guest.name : ''}
                     changeNameHandler={changeNameHandler}
                     picture='/assets/no_profile_picture.svg'
+                    handleOptionsButtonClick={handleOptionsOpen}
+                    playButtonPressed={playButtonPressed}
                 />
             </Guestcontainer>
             {loading === true && <LoadingModal visible='visible' />}
+            {optionsVisible && <Modal1 isOpen={optionsVisible} setOpen={handleOptionsOpen}>
+                <Options />
+            </Modal1>}
         </>
     );
 }
+
+
+
+
+
+
+
 
 const Guestcontainer = styled.div`
     padding-top: var(--navbar_height);
