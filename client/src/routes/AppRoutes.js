@@ -6,6 +6,7 @@ import Guest from '../pages/Guest';
 import User from '../pages/User';
 import Signin from '../pages/Signin';
 import Signup from '../pages/Signup';
+import PublicGame from '../pages/PublicGame';
 
 function AppRoutes() {
     const [player, setPlayer] = useContext(authContext);
@@ -16,8 +17,16 @@ function AppRoutes() {
                 <Route path='/signin' element={<Signin />} />
                 <Route path='/signup' element={<Signup />} />
             </>}
-            {player.type === 'user' && <Route path='/user' element={<User />} />}
-            {player.type === 'guest' && <Route path='/guest' element={<Guest />} />}
+            {player.type === 'user' &&
+                <>
+                    <Route path='/user' element={<User />} />
+                    <Route path='/user/public/:roomid' element={<PublicGame />} />
+                </>}
+            {player.type === 'guest' &&
+                <>
+                    <Route path='/guest' element={<Guest />} />
+                    <Route path='/guest/public/:roomid' element={<PublicGame />} />
+                </>}
         </Routes>
     );
 }

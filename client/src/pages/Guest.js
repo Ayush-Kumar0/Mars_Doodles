@@ -8,9 +8,11 @@ import LoadingModal from '../components/Loader/loader';
 import Modal1 from '../components/Modals/Modal1';
 import Options from '../components/Modals/Options';
 import PublicGame from '../socket/publicGame';
+import { useNavigate } from 'react-router-dom';
 
 
 function Guest() {
+    const nav = useNavigate();
     const [player, setPlayer] = useContext(authContext);
     const [loading, setLoading] = useState(true);
     const [optionsVisible, setOptionsVisible] = useState(false);
@@ -57,7 +59,7 @@ function Guest() {
 
     // START the public game on 'PLAY'
     const playButtonPressed = (e) => {
-        const publicGame = new PublicGame();
+        const publicGame = new PublicGame(nav, toast);
         publicGame.getRoom();
     }
 
