@@ -1,26 +1,48 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-function Chatbox() {
+function Chatbox({ socket }) {
     const [text, setText] = useState('');
+    const [chatMessages, setChatMessages] = useState([]);
+
+    useEffect(() => {
+        socket.on("provide-new-public-chat", (chat) => {
+            setChatMessages(prevChatMessages => [...prevChatMessages, chat]);
+        });
+        socket.on("provide-new-public-chat-self", (chat) => {
+            console.log(chat);
+            setChatMessages(prevChatMessages => [...prevChatMessages, chat]);
+        })
+
+        return () => {
+            socket.off("provide-new-public-chat");
+            socket.off("provide-new-public-chat-self");
+        }
+    }, []);
+
+    const handleSendMessage = (e) => {
+        if (e.key === 'Enter') {
+            // Send message to server for validation
+            socket.emit("send-new-public-chat", text);
+            setText('');
+        }
+    }
+
+
+    let key = 0;
     return (
         <>
             <ChatBoxContainer>
                 <p className='heading'>Chat</p>
                 <ChatList>
                     <ul>
-                        <li>Ayush: Orange</li>
-                        <li>Ayush: Orange</li>
-                        <li>Ayush: Orange</li>
-                        <li>Ayush: Orange</li>
-                        <li>Ayush: Orange</li>
-                        <li>Ayush: Orange</li>
-                        <li>Ayush: Orange</li>
-                        <li>Ayush: Orange</li>
-                        <li>Ayush: OrangeOrangeOrangeOrangeOrangeOrangeOrangeOrangeOrangeOrange</li>
+                        {chatMessages && chatMessages.map(chatmsg => (
+                            <li key={key++}><span className='sender'>{chatmsg.sender}:</span>&nbsp;<span className='message'>{chatmsg.message}</span></li>
+                        ))}
+                        {/* <li><span className='sender'>Ayush:</span>&nbsp;<span className='message'>Orange</span></li> */}
                     </ul>
                 </ChatList>
-                <input id='chatinput' placeholder='Enter text' value={text} onChange={(e) => { setText(e.target.value) }} />
+                <input id='chatinput' placeholder='Enter text' value={text} onChange={(e) => { setText(e.target.value) }} onKeyDown={handleSendMessage} />
             </ChatBoxContainer>
         </>
     );
@@ -72,6 +94,14 @@ const ChatList = styled.div`
             word-wrap: break-word;
             &:first-child {
                 border-top: 0.5px solid var(--charcoal);
+            }
+
+            .sender {
+                color: var(--primary);
+                font-weight: bold;
+            }
+            .message {
+                color: var(--obsidian);
             }
         }
     }

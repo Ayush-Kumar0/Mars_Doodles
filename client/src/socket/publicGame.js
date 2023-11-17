@@ -7,10 +7,11 @@ class PublicGame {
     static nav;
     static toast;
     // Get connection for the player
-    constructor(navigation, toastify) {
+    constructor(navigation, toastify, setSocket) {
         this.connection = new Connection();
         this.connection.getNewSocket();
         this.socket = this.connection.socket;
+        setSocket(this.socket);
         this.eventListeners();
         this.nav = navigation;
         this.toast = toastify;
@@ -20,8 +21,8 @@ class PublicGame {
         // Event listeners
         this.socket.on("provide-public-room", (isAvailable) => {
             console.log(isAvailable);
-            if (isAvailable)
-                this.nav(`public/`, { publicGame: this });
+            if (isAvailable && this.socket)
+                this.nav(`public/`);
             else {
                 this.toast.error("You are not authorized");
             }

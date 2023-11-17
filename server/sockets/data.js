@@ -1,0 +1,1 @@
+module.exports.playersInfo = new Map(); // { socketid: {id, name, type, picture} }

@@ -7,6 +7,7 @@ import User from '../pages/User';
 import Signin from '../pages/Signin';
 import Signup from '../pages/Signup';
 import PublicGame from '../pages/PublicGame';
+import RoomState from '../contexts/room/roomState';
 
 function AppRoutes() {
     const [player, setPlayer] = useContext(authContext);
@@ -19,13 +20,13 @@ function AppRoutes() {
             </>}
             {player.type === 'user' &&
                 <>
-                    <Route path='/user' element={<User />} />
-                    <Route path='/user/public/:roomid' element={<PublicGame />} />
+                    <Route path='/user' element={<RoomState><User /></RoomState>} />
+                    <Route path='/user/public/' element={<RoomState><PublicGame /></RoomState>} />
                 </>}
             {player.type === 'guest' &&
                 <>
-                    <Route path='/guest' element={<Guest />} />
-                    <Route path='/guest/public/:roomid' element={<PublicGame />} />
+                    <Route path='/guest' element={<RoomState><Guest /></RoomState>} />
+                    <Route path='/guest/public/' element={<RoomState><PublicGame /></RoomState>} />
                 </>}
         </Routes>
     );

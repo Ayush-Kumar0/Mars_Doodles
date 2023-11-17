@@ -1,21 +1,45 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-function GamePlayers() {
+function GamePlayers({ initplayers, socket }) {
+    const [players, setPlayers] = useState(initplayers);
+
+    useEffect(() => {
+        setPlayers(initplayers);
+        // When new player joins room
+        socket.on("provide-new-public-player", (result) => {
+            // console.log(initplayers, result);
+            setPlayers(prevPlayers => [...prevPlayers, result]);
+        });
+        // When a player leaves the room
+        socket.on("provide-public-player-left", (result) => {
+            setPlayers(prevPlayers => prevPlayers.filter(pl => pl.id !== result.id));
+        });
+
+        return () => {
+            socket.off("provide-new-public-player");
+            socket.off("provide-public-player-left");
+        }
+    }, [initplayers]);
+
+
     return (
         <PlayersContainer>
             <p className='players'>Players</p>
             <ul>
-                <li><img src='/assets/no_profile_picture.svg' /><p>Ayush</p></li>
-                <li><img src='/assets/mars_doodles.png' />Ayush</li>
-                <li><img src='/assets/mars_doodles.png' />Ayush</li>
-                <li><img src='/assets/mars_doodles.png' />Ayush</li>
-                <li><img src='/assets/mars_doodles.png' />Ayush</li>
-                <li><img src='/assets/mars_doodles.png' />Ayush</li>
+                {players && players.map(player => {
+                    return (<li key={player.id}>
+                        <img src={(player && player.picture) ? player.picture : '/assets/no_profile_picture.svg'} />
+                        <p>{player.name}</p>
+                    </li>);
+                })}
+                {/* <li><img src='/assets/no_profile_picture.svg' /><p>Ayush</p></li> */}
             </ul>
         </PlayersContainer>
     );
 }
+
+
 
 
 const PlayersContainer = styled.div`

@@ -1,5 +1,9 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/user');
+const Guest = require('../models/guest');
 const PublicRoom = require('./PublicRoom');
+
+let playersInfo = require('./data').playersInfo; // { socketid: {id, name, type, picture} }
 
 // Get cookies from socket request from user
 async function getCookies(socket, next) {
@@ -55,8 +59,29 @@ module.exports = (io) => {
             if (socket.user || socket.guest) {
                 // Do mapping of {socketid: roomid} also
                 PublicRoom.addInRoom({ id: socket.id })
-                    .then(result => {
+                    .then(async result => {
                         try {
+                            // Store players info
+                            async function getPlayersInfo(socket) {
+                                if (socket.user) {
+                                    const user = await User.findById(socket.user._id);
+                                    return {
+                                        id: user.id,
+                                        name: user.name,
+                                        type: 'user',
+                                        picture: user.picture
+                                    };
+                                } else if (socket.guest) {
+                                    const guest = await Guest.findById(socket.guest._id);
+                                    return {
+                                        id: guest.id,
+                                        name: guest.name,
+                                        type: 'guest'
+                                    };
+                                } else
+                                    return null;
+                            }
+                            playersInfo.set(socket.id, await getPlayersInfo(socket));
                             // Emit the room id to user so they can join
                             socket.join(result.id);
                             socket.emit("provide-public-room", true);
@@ -74,6 +99,38 @@ module.exports = (io) => {
             }
         });
 
+        // Providing public rooms current state
+        socket.on("get-init-public-room", (options) => {
+            if (socket.user || socket.guest) {
+                try {
+                    let roominfo = PublicRoom.serializeRoom({ id: socket.id }, playersInfo);
+                    if (roominfo.roomid) {
+                        socket.emit("provide-init-public-room", roominfo);
+                        // Broadcast in room when new player joins
+                        socket.broadcast.to(roominfo.roomid).emit("provide-new-public-player", playersInfo.get(socket.id));
+                    }
+                } catch (err) {
+                    console.log(err);
+                    socket.emit("provide-init-public-room", null);
+                }
+            } else {
+                socket.emit("provide-init-public-room", null);
+            }
+        });
+
+        socket.on("send-new-public-chat", (text) => {
+            try {
+                if (socket.user || socket.guest) {
+                    let player = playersInfo.get(socket.id);
+                    socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player.name, message: text });
+                    socket.emit("provide-new-public-chat-self", { sender: "me", message: text });
+                    // TODO: More when actual guessing game is implemented
+                }
+            } catch (err) {
+                console.log(err);
+            }
+        });
+
 
 
         socket.on("disconnect", (reason) => {
@@ -82,9 +139,13 @@ module.exports = (io) => {
 
             }
             if (socket.guest) {
-                PublicRoom.removePlayer({ id: socket.id });
+                // Inform others in room that guest has left.
+                socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", playersInfo.get(socket.id));
                 socket.leave(PublicRoom.getUsersRoomId({ id: socket.id }));
+                PublicRoom.removePlayer({ id: socket.id });
             }
+            if (playersInfo.has(socket.id))
+                playersInfo.delete(socket.id);
         });
     });
 }

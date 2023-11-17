@@ -3,15 +3,13 @@ import './App.css';
 import AuthState from './contexts/auth/authState';
 import AppRoutes from './routes/AppRoutes';
 import { BrowserRouter } from 'react-router-dom';
-import PublicGame from './pages/PublicGame';
 
 function App() {
   return (
     <>
       <BrowserRouter>
         <AuthState>
-          {/* <AppRoutes /> */}
-          <PublicGame />
+          <AppRoutes />
           <ToastContainer
             position="top-center"
             autoClose={3000}
