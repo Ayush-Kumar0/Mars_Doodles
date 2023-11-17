@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-function GamePlayers({ initplayers, socket }) {
+function GamePlayers({ initplayers, socket, artistPlayer, userGuest }) {
     const [players, setPlayers] = useState(initplayers);
+    const [artist, setArtist] = useState(artistPlayer)
 
     useEffect(() => {
         setPlayers(initplayers);
         // When new player joins room
         socket.on("provide-new-public-player", (result) => {
             // console.log(initplayers, result);
-            setPlayers(prevPlayers => [...prevPlayers, result]);
+            setPlayers(prevPlayers => {
+                let index = prevPlayers.findIndex((plr) => plr.id === result.id);
+                if (index === -1)
+                    return [...prevPlayers, result];
+                else
+                    return prevPlayers;
+            });
         });
         // When a player leaves the room
         socket.on("provide-public-player-left", (result) => {
@@ -22,15 +29,24 @@ function GamePlayers({ initplayers, socket }) {
         }
     }, [initplayers]);
 
+    useEffect(() => {
+        setArtist(artistPlayer);
+        return () => {
+        }
+    }, [artistPlayer]);
+
+
 
     return (
         <PlayersContainer>
             <p className='players'>Players</p>
             <ul>
                 {players && players.map(player => {
-                    return (<li key={player.id}>
-                        <img src={(player && player.picture) ? player.picture : '/assets/no_profile_picture.svg'} />
+                    return (<li key={player.id} className={(((userGuest.guest && userGuest.guest._id === player.id) || (userGuest.user && userGuest.user._id === player.id)) ? 'myself' : '')}>
+                        <img className='profile_picture' src={(player && player.picture) ? player.picture : '/assets/no_profile_picture.svg'} />
                         <p>{player.name}</p>
+                        {artist && artist.id === player.id &&
+                            <img className='draw_icon' src='/assets/draw_icon.svg' />}
                     </li>);
                 })}
                 {/* <li><img src='/assets/no_profile_picture.svg' /><p>Ayush</p></li> */}
@@ -78,7 +94,7 @@ const PlayersContainer = styled.div`
             /* word-wrap: break-word;
             flex-wrap: wrap; */
 
-            img {
+            .profile_picture {
                 height: 40px;
                 width: 40px;
                 border-radius: 50%;
@@ -90,6 +106,15 @@ const PlayersContainer = styled.div`
                 width: calc(100% - 42px);
                 word-wrap: break-word;
             }
+
+            .draw_icon {
+                height: 20px;
+                opacity: 0.5;
+            }
+        }
+
+        .myself {
+            background-color: var(--cotton);
         }
     }
 `;

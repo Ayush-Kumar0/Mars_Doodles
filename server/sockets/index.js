@@ -3,7 +3,7 @@ const User = require('../models/user');
 const Guest = require('../models/guest');
 const PublicRoom = require('./PublicRoom');
 
-let playersInfo = require('./data').playersInfo; // { socketid: {id, name, type, picture} }
+let playersInfo = require('./data').playersInfo; // { player_sid: {id, name, type, picture} }
 
 // Get cookies from socket request from user
 async function getCookies(socket, next) {
@@ -144,7 +144,8 @@ module.exports = (io) => {
             }
             if (socket.guest) {
                 // Inform others in room that guest has left.
-                socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", playersInfo.get(socket.id));
+                if (PublicRoom.shouldInformIfPlayerLeaves({ id: socket.id }))
+                    socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", playersInfo.get(socket.id));
                 socket.leave(PublicRoom.getUsersRoomId({ id: socket.id }));
                 PublicRoom.removePlayer({ id: socket.id });
             }
