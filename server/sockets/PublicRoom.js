@@ -3,8 +3,9 @@ const words = require('../data/words');
 let playersInfo = require('./data').playersInfo; // { socketid: {id, name, type, picture} }
 
 
-const startLimit = 4, roomLimit = 31;
-const defaultPlayerTime = 30000, defaultTotalRounds = 3;
+const startLimit = 2, roomLimit = 31;
+const defaultPlayerTime = 10000, defaultWaitingDuration = 5000;
+const defaultTotalRounds = 2, defaultPercentWordReveal = 0.6;
 
 let publicRoomIds = [];
 // All public room objects
@@ -23,6 +24,7 @@ class PublicRoom {
     totalRounds;
     roundsCompleted;
     currentWord;
+    percentWordReveal
     constructor(roomId) {
         this.id = roomId;
         this.roomPlayers = []; // [ {player_sid, hasDrawnThisRound} ]
@@ -31,7 +33,8 @@ class PublicRoom {
         this.totalRounds = defaultTotalRounds;
         this.roundsCompleted = 0;
         this.onPause = true;
-        this.waitingDuration = 10000;
+        this.waitingDuration = defaultWaitingDuration;
+        this.percentWordReveal = defaultPercentWordReveal;
     }
     getId() {
         return this.id;
@@ -58,9 +61,11 @@ class PublicRoom {
 
     // Function to start the game and timers
     start(io) {
+        console.log('Start is called');
         // pivotTime is undefined when game hasn't started
         if (!this.pivotTime && this.roundsCompleted < this.totalRounds && this.getSize() >= this.lowerLimit) {
             this.startRound(io);
+            console.log('Game started');
         }
     }
     startRound(io) {
@@ -73,29 +78,34 @@ class PublicRoom {
         let artistIndex = this.roomPlayers.findIndex((val) => val.hasDrawnThisRound === false); // Choose player to be artist
 
         const startPlayer = () => {
+            console.log(this.roomPlayers, artistIndex);
             this.roomPlayers[artistIndex].hasDrawnThisRound = true;
             obj.artist = this.roomPlayers[artistIndex].id;
 
             this.pivotTime = Date.now();
             // Send secret information to artist
             io.to(obj.artist).emit("provide-public-to-artist", obj.wordToDraw);
+            console.log('Word sent to artist: ' + obj.wordToDraw);
             // Send game information to all players
             io.to(this.id).emit("provide-public-artist-info", playersInfo.get(obj.artist));
+            console.log('Artist sent to all players');
 
             // Hint provider
             let hint = setInterval(() => {
                 let index = Math.floor(Math.random() * obj.wordToDraw.length);
                 io.to(this.id).emit("provide-public-hint", index, obj.wordToDraw[index]);
-            }, this.playerTime / obj.wordToDraw.length / 2);
+                console.log('Hint provided: ' + index);
+            }, Math.round(this.playerTime / (this.percentWordReveal * obj.wordToDraw.length)));
 
             // Round timer
             let timer = setTimeout(() => {
                 this.onPause = true;
-                hint.clearInterval();
+                clearInterval(hint);
                 this.pivotTime = Date.now();
 
                 // Start for another player
                 io.to(this.id).emit("provide-public-artist-over", playersInfo.get(obj.artist));
+                console.log('Artist is over');
                 this.startRound(io);
             }, this.playerTime);
         }
@@ -104,13 +114,14 @@ class PublicRoom {
             // If artistIndex==-1, close this round and start new round
             // Send reults immediately
             io.to(this.id).emit("provide-public-round-over", "These are result of round", "These are net results");
+            console.log('Round is over');
             this.roundsCompleted++;
             if (this.roundsCompleted >= this.totalRounds) {
-                return this.endGame();
+                return this.endGame(io);
             } else {
                 this.roomPlayers = this.roomPlayers.map((pl) => { pl.hasDrawnThisRound = false; return pl });
                 setTimeout(() => {
-                    startPlayer();
+                    this.startRound(io);
                 }, this.waitingDuration);
             }
         } else {
@@ -120,6 +131,7 @@ class PublicRoom {
     }
     endGame(io) {
         io.to(this.id).emit("provide-public-game-ended", "The game has ended");
+        console.log('Game is over');
     }
 }
 
@@ -215,7 +227,8 @@ const getUsersRoomId = (player) => {
 const serializeRoom = (player) => {
     try {
         let roomid = playersRoom.get(player.id);
-        let players = publicRooms.get(roomid)?.getPlayers();
+        let room = publicRooms.get(roomid);
+        let players = room?.getPlayers();
         if (!players)
             return {};
         let data = [];
@@ -229,7 +242,7 @@ const serializeRoom = (player) => {
             });
         }
         // Return necessary game info for players interactivity
-        return { roomid, players: data, playerTime: this.playerTime, waitingDuration: this.waitingDuration };
+        return { roomid, room: room, data, playerTime: room.playerTime, waitingDuration: room.waitingDuration };
     } catch (err) {
         console.log(err);
         return {};

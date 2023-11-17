@@ -25,7 +25,6 @@ function Guest() {
 
     const changeNameHandler = (name, setName) => {
         setLoading(true)
-        console.log(name);
         // Change guest name in server
         fetch(`${process.env.REACT_APP_SERVER_URL}/guest/changename`, {
             method: 'post',
@@ -37,7 +36,6 @@ function Guest() {
         }).then(async result => {
             const body = await result.clone().json();
             setLoading(false);
-            console.log(body);
             if (result.status === 200) {
                 body.guest && body.guest.name && setPlayer(body);
             } else {

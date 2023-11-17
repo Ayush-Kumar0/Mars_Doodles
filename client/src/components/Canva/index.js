@@ -48,7 +48,6 @@ function Canva() {
                     onMouseDown={handleMouseDown}
                     onMousemove={handleMouseMove}
                     onMouseup={handleMouseUp}
-
                 >
                     <Layer>
                         {lines.map((line, i) => (

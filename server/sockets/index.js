@@ -108,6 +108,10 @@ module.exports = (io) => {
                         socket.emit("provide-init-public-room", roominfo);
                         // Broadcast in room when new player joins
                         socket.broadcast.to(roominfo.roomid).emit("provide-new-public-player", playersInfo.get(socket.id));
+                        // Call start function
+                        if (roominfo.room) {
+                            roominfo.room.start(io);
+                        }
                     }
                 } catch (err) {
                     console.log(err);
