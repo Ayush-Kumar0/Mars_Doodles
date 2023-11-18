@@ -7,15 +7,20 @@ import { toast } from 'react-toastify';
 import LoadingModal from '../components/Loader/loader';
 import Modal1 from '../components/Modals/Modal1';
 import Options from '../components/Modals/Options';
+import PublicGame from '../socket/publicGame';
+import { useNavigate } from 'react-router-dom';
+import roomContext from '../contexts/room/roomContext';
 
 function User() {
+    const nav = useNavigate();
     const [player, setPlayer] = useContext(authContext);
+    const [socket, setSocket] = useContext(roomContext);
     const [loading, setLoading] = useState(true);
     const [optionsVisible, setOptionsVisible] = useState(false);
 
     useEffect(() => {
         setLoading(false);
-    });
+    }, []);
 
     const changeNameHandler = (name, setName) => {
         setLoading(true)
@@ -49,13 +54,13 @@ function User() {
     }
 
     function handleOptionsOpen(e) {
-        console.log(!optionsVisible);
         setOptionsVisible(!optionsVisible);
     }
 
+    // START the public game on 'PLAY'
     const playButtonPressed = (e) => {
-        // START the game
-        console.log('play');
+        const publicGame = new PublicGame(nav, toast, setSocket);
+        publicGame.getRoom();
     }
 
 

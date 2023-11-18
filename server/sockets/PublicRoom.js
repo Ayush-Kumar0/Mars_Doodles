@@ -15,7 +15,7 @@ const playersRoom = new Map(); // {player_sid: roomid}
 
 class PublicRoom {
     id;
-    roomPlayers; // Map of players in this room
+    roomPlayers; // [id(player_sid): {hasDrawnThisRound, score}]
     lowerLimit;
     playerTime;
     timeBtwRounds;
@@ -28,17 +28,19 @@ class PublicRoom {
     percentWordReveal;
     hiddenWord; // Partially revealed word
     roomSize;
-    artist;
+    artistSid;
 
     hasStarted;
     waitingForNewArtist;
     waitingForNewRound;
     isGameOver;
 
+    scoreIncrements;
+
     constructor(roomId) {
         this.id = roomId;
-        // this.roomPlayers = []; // [ {id(player_sid), hasDrawnThisRound} ]
-        this.roomPlayers = new Map(); // [id(player_sid): {hasDrawnThisRound, score}]
+        this.roomPlayers = new Map(); // [id(player_sid): {hasDrawnThisRound, score, hasGuessed}]
+        this.scoreIncrements = new Map();
         this.lowerLimit = startLimit;
         this.playerTime = defaultPlayerTime;
         this.totalRounds = defaultTotalRounds;
@@ -65,7 +67,7 @@ class PublicRoom {
     }
     addPlayer(player) {
         try {
-            this.roomPlayers.set(player.id, { hasDrawnThisRound: false, score: 0 });
+            this.roomPlayers.set(player.id, { hasDrawnThisRound: false, score: 0, hasGuessed: false });
             this.roomSize++;
             // Start the game once minimum players are there
             return this;
@@ -80,6 +82,29 @@ class PublicRoom {
             this.roomSize--;
         }
         return this.roomPlayers;
+    }
+    updateScore(player, text) {
+        try {
+            if (this.currentWord && text && this.currentWord.toLowerCase() === text.trim().toLowerCase()) {
+                let oldPlayer = this.roomPlayers.get(player.id);
+                // console.log(player.id, this.artistSid);
+                if (oldPlayer && !oldPlayer.hasGuessed && this.artistSid && !this.isGameOver && player.id != this.artistSid) {
+                    // TODO: Add scoring algorithm to give scores correctly
+                    const scoreAddition = 100;
+                    oldPlayer.score = oldPlayer.score ? oldPlayer.score + scoreAddition : scoreAddition;
+                    if (this.scoreIncrements.has(player.id) && Number.isInteger(this.scoreIncrements.get(player.id)))
+                        this.scoreIncrements.set(player.id, this.scoreIncrements.get(player.id) + scoreAddition);
+                    else
+                        this.scoreIncrements.set(player.id, scoreAddition);
+                    oldPlayer.hasGuessed = true;
+                    this.roomPlayers.set(player.id, oldPlayer);
+                    return scoreAddition;
+                }
+            }
+        } catch (err) {
+            console.log(err);
+        }
+        return null;
     }
 
     // When should this room be joinalbe
@@ -132,7 +157,7 @@ class PublicRoom {
         const startPlayer = () => {
             console.log(this.roomPlayers, artistKey);
             let artist = this.roomPlayers.get(artistKey);
-            this.artist = artist;
+            this.artistSid = artistKey;
             if (artist) {
                 // If artist is still in room, then continue the game
 
@@ -163,7 +188,7 @@ class PublicRoom {
                     this.onPause = true;
                     this.pivotTime = Date.now();
                     // Make another artist when current artist leaves and causes error
-                    this.artist = null;
+                    this.artistSid = null;
                     this.currentWord = null;
                     return this.startRound(io);
                 }
@@ -184,13 +209,21 @@ class PublicRoom {
                     // update the artist once their session is completed
 
                     // Stop drawing session of current artist immediately
-                    this.artist = null;
+                    this.artistSid = null;
                     io.to(this.id).emit("provide-public-artist-over", playersInfo.get(obj.artist), obj?.wordToDraw);
                     console.log('Artist is over');
                     this.currentWord = null;
                     this.waitingForNewArtist = true;
                     this.onPause = true;
                     this.pivotTime = Date.now();
+                    // Restor room players to let them guess for next drawing
+                    const mapToArray = Array.from(this.roomPlayers).map(([key, value]) => {
+                        if (key && value) {
+                            value.hasGuessed = false;
+                        }
+                        return [key, value];
+                    });
+                    this.roomPlayers = new Map(mapToArray);
                     // Wait after the artist's session is completed;
                     setTimeout(() => {
                         // Start drawing session for another player
@@ -199,31 +232,43 @@ class PublicRoom {
                 }, this.playerTime);
             } else {
                 // If artist is not there then choose another artist
-                this.artist = null;
+                this.artistSid = null;
                 return this.startRound(io);
             }
         }
 
         if (artistKey === null) {
-            this.artist = null;
+            this.artistSid = null;
             // TODO: Delete the room if this room is empty
             // If artistKey==null, close this round and start new round
+            // Serializing results
+            const serializeScoreIncrements = () => {
+                const newArray = Array.from(this.scoreIncrements).map(([key, value]) => {
+                    if (key && playersInfo.has(key))
+                        return { id: key, scoreIncrement: value };
+                    return null;
+                });
+                return newArray;
+            }
             // Send reults immediately
-            io.to(this.id).emit("provide-public-round-over", "These are result of round", "These are net results");
+            io.to(this.id).emit("provide-public-round-over", serializeScoreIncrements());
             console.log('Round is over');
             this.waitingForNewRound = true;
             this.onPause = true;
             this.pivotTime = Date.now();
             this.roundsCompleted++;
+            this.scoreIncrements.clear();
 
             if (this.roundsCompleted >= this.totalRounds) {
                 return this.endGame(io);
             } else {
+                // Restore all players to haven't drawn for next round
                 const mapToArray = Array.from(this.roomPlayers).map(([key, value]) => {
-                    if (key && value) value.hasDrawnThisRound = false;
+                    if (key && value) {
+                        value.hasDrawnThisRound = false;
+                    }
                     return [key, value];
                 });
-                // Create a new Map from the transformed array
                 this.roomPlayers = new Map(mapToArray);
 
                 setTimeout(() => {
@@ -360,6 +405,7 @@ const serializeRoom = (player) => {
                     name: playersInfo.get(sid).name,
                     type: playersInfo.get(sid).type,
                     picture: playersInfo.get(sid).picture,
+                    score: players.get(key).score,
                 });
             }
         }
@@ -371,7 +417,7 @@ const serializeRoom = (player) => {
             playerTime: room.playerTime,
             timeBtwRounds: room.timeBtwRounds,
             timeBtwArtSessions: room.timeBtwArtSessions,
-            artist: room.artist,
+            artist: playersInfo.get(room.artistSid),
             hiddenWord: room.hiddenWord,
             onPause: room.onPause,
             hasStarted: room.hasStarted,
@@ -390,8 +436,37 @@ const serializeRoom = (player) => {
 }
 
 
+// Give score to the player
+const giveScoreToPlayer = (player, text) => {
+    const room = publicRooms.get(playersRoom.get(player.id));
+    if (room)
+        return room.updateScore(player, text);
+    return null;
+}
+
+
+// Is player the artist in their room
+const isPlayerArtist = (player) => {
+    let roomid = getUsersRoomId(player);
+    let room = publicRooms.get(roomid);
+    if (player.id !== room.artistSid)
+        return false;
+    return true;
+}
+
+
+// Do word hiding
+const filterText = (player, text) => {
+    // TODO: Message filtering
+    return text;
+}
+
+
 module.exports.addInRoom = addInRoom;
 module.exports.removePlayer = removePlayer;
 module.exports.shouldInformIfPlayerLeaves = shouldInformIfPlayerLeaves;
 module.exports.getUsersRoomId = getUsersRoomId;
 module.exports.serializeRoom = serializeRoom;
+module.exports.giveScoreToPlayer = giveScoreToPlayer;
+module.exports.filterText = filterText;
+module.exports.isPlayerArtist = isPlayerArtist;

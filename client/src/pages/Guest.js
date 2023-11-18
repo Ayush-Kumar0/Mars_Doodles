@@ -21,7 +21,7 @@ function Guest() {
 
     useEffect(() => {
         setLoading(false);
-    });
+    }, []);
 
     const changeNameHandler = (name, setName) => {
         setLoading(true)

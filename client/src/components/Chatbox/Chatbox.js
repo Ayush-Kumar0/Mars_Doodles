@@ -1,24 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-function Chatbox({ socket }) {
+function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent }) {
     const [text, setText] = useState('');
     const [chatMessages, setChatMessages] = useState([]);
+    const [userGuestId, setUserGuestId] = useState(null);
+    const [amIArtist, setAmIArtist] = useState(amIArtistParent);
+
+
+    useEffect(() => {
+        if (userGuest && userGuest.type === 'user')
+            setUserGuestId(userGuest.user._id);
+        else if (userGuest && userGuest.type === 'guest')
+            setUserGuestId(userGuest.guest._id);
+    }, [socket, userGuest]);
 
     useEffect(() => {
         socket.on("provide-new-public-chat", (chat) => {
-            setChatMessages(prevChatMessages => [...prevChatMessages, chat]);
+            handleScoreStorage(chat.sender, chat.score);
+            if (chat.guessed)
+                setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: `Guessed it.`, className: 'otherguessed' }]);
+            else
+                setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
         });
         socket.on("provide-new-public-chat-self", (chat) => {
-            console.log(chat);
-            setChatMessages(prevChatMessages => [...prevChatMessages, chat]);
-        })
+            handleScoreStorage(chat.sender, chat.score);
+            if (chat.guessed)
+                setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You gessed it : " + chat.message, className: 'youguessed' }]);
+            else
+                setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
+        });
 
         return () => {
             socket.off("provide-new-public-chat");
             socket.off("provide-new-public-chat-self");
         }
-    }, []);
+    }, [socket, handleScoreStorage]);
+
+    useEffect(() => {
+        setAmIArtist(amIArtistParent);
+    }, [amIArtistParent]);
+
+
+
+
 
     const handleSendMessage = (e) => {
         if (e.key === 'Enter') {
@@ -37,12 +62,17 @@ function Chatbox({ socket }) {
                 <ChatList>
                     <ul>
                         {chatMessages && chatMessages.map(chatmsg => (
-                            <li key={key++}><span className='sender'>{chatmsg.sender}:</span>&nbsp;<span className='message'>{chatmsg.message}</span></li>
+                            (chatmsg && chatmsg.sender && chatmsg.sender.id !== userGuestId)
+                                ? <li key={key++} className={chatmsg.className ? chatmsg.className : ''}><span className='sender'>{chatmsg.sender.name}:</span>&nbsp;<span className='message'>{chatmsg.message}</span></li>
+                                : <li key={key++} className={chatmsg.className ? chatmsg.className : ''}><span className='sender'>{"me"}:</span>&nbsp;<span className='message'>{chatmsg.message}</span></li>
                         ))}
                         {/* <li><span className='sender'>Ayush:</span>&nbsp;<span className='message'>Orange</span></li> */}
                     </ul>
                 </ChatList>
-                <input id='chatinput' placeholder='Enter text' value={text} onChange={(e) => { setText(e.target.value) }} onKeyDown={handleSendMessage} />
+                {amIArtist ?
+                    <input id='chatinput' placeholder='Enter text' value={text} onChange={(e) => { setText(e.target.value) }} onKeyDown={handleSendMessage} disabled /> :
+                    <input id='chatinput' placeholder='Enter text' value={text} onChange={(e) => { setText(e.target.value) }} onKeyDown={handleSendMessage} />
+                }
             </ChatBoxContainer>
         </>
     );
@@ -103,6 +133,13 @@ const ChatList = styled.div`
             .message {
                 color: var(--obsidian);
             }
+        }
+
+        .youguessed {
+            background-color: var(--chatgreen);
+        }
+        .otherguessed {
+            background-color: var(--chatred);
         }
     }
 `;

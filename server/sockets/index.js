@@ -128,11 +128,20 @@ module.exports = (io) => {
             try {
                 if (socket.user || socket.guest) {
                     let player = playersInfo.get(socket.id);
-                    if (player) {
-                        socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player.name, message: text });
-                        socket.emit("provide-new-public-chat-self", { sender: "me", message: text });
+                    if (player && !PublicRoom.isPlayerArtist({ id: socket.id })) {
+                        // Along with message, send the score if scored
+                        const score = PublicRoom.giveScoreToPlayer({ id: socket.id }, text);
+                        if (score) {
+                            // Someone guessed
+                            socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: '', score, guessed: true });
+                            socket.emit("provide-new-public-chat-self", { sender: player, message: text, score, guessed: true });
+                        } else {
+                            // Not guessed, but have to filter for any hints
+                            const filteredText = PublicRoom.filterText({ id: socket.id }, text);
+                            socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: filteredText, score, guessed: false });
+                            socket.emit("provide-new-public-chat-self", { sender: player, message: filteredText, score, guessed: false });
+                        }
                     }
-                    // TODO: More when actual guessing game is implemented
                 }
             } catch (err) {
                 console.log(err);
