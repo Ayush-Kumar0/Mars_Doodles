@@ -4,7 +4,7 @@ let playersInfo = require('./data').playersInfo; // { player_sid: {id, name, typ
 
 
 const startLimit = 2, roomLimit = 31;
-const defaultPlayerTime = 30000, defaultWaitingDuration = 10000;
+const defaultPlayerTime = 30000, defaultTimeBtwRounds = 15000, defaultTimeBtwArtSessions = 10000;
 const defaultTotalRounds = 2, defaultPercentWordReveal = 1;
 
 let publicRoomIds = []; // Undefined values should be cleared after few intervals
@@ -18,28 +18,40 @@ class PublicRoom {
     roomPlayers;
     lowerLimit;
     playerTime;
-    waitingDuration;
+    timeBtwRounds;
+    timeBtwArtSessions;
     pivotTime; //at which round started or ended last time
     onPause;
     totalRounds;
     roundsCompleted;
-    currentWord;
+    currentWord; // Complete word
     percentWordReveal;
-    hiddenWord;
+    hiddenWord; // Partially revealed word
     roomSize;
     artist;
+
+    hasStarted;
+    waitingForNewArtist;
+    waitingForNewRound;
+    isGameOver;
+
     constructor(roomId) {
         this.id = roomId;
-        this.roomPlayers = []; // [ {player_sid, hasDrawnThisRound} ]
+        this.roomPlayers = []; // [ {id(player_sid), hasDrawnThisRound} ]
         this.lowerLimit = startLimit;
         this.playerTime = defaultPlayerTime;
         this.totalRounds = defaultTotalRounds;
-        this.roundsCompleted = 0;
-        this.onPause = true;
-        this.waitingDuration = defaultWaitingDuration;
+        this.timeBtwRounds = defaultTimeBtwRounds;
+        this.timeBtwArtSessions = defaultTimeBtwArtSessions;
         this.percentWordReveal = defaultPercentWordReveal;
         this.hiddenWord = "";
+        this.onPause = true;
+        this.roundsCompleted = 0;
         this.roomSize = 0;
+        this.hasStarted = false;
+        this.waitingForNewArtist = true;
+        this.waitingForNewRound = true;
+        this.isGameOver = false;
     }
     getId() {
         return this.id;
@@ -70,11 +82,11 @@ class PublicRoom {
 
     // When should this room be joinalbe
     shouldJoin() {
-        if (this.onPause)
+        if (this.getSize() === 0 || this.isGameOver || this.roundsCompleted === this.totalRounds)
+            return false;
+        else if (this.onPause)
             return true;
         else {
-            if (this.getSize() === 0 || this.roundsCompleted === this.totalRounds)
-                return false;
             return true;
         }
     }
@@ -83,13 +95,19 @@ class PublicRoom {
     start(io) {
         console.log('Start is called');
         // pivotTime is undefined when game hasn't started
-        if (!this.pivotTime && this.roundsCompleted < this.totalRounds && this.getSize() >= this.lowerLimit) {
-            this.startRound(io);
+        if (!this.hasStarted && !this.isGameOver && this.roundsCompleted < this.totalRounds && this.getSize() >= this.lowerLimit) {
+            this.hasStarted = true;
+            this.pivotTime = Date.now();
+            setTimeout(() => {
+                // Wait just a little before starting
+                this.onPause = true;
+                this.pivotTime = Date.now();
+                this.startRound(io);
+            }, 2000);
             console.log('Game started');
         }
     }
     startRound(io) {
-        this.onPause = false;
         const obj = {
             artist: null, // Socket id of artist
             wordToDraw: '', // One word that is to be drawn
@@ -110,11 +128,13 @@ class PublicRoom {
                 // If artist is still in room, then continue the game
 
                 obj.artist = this.roomPlayers[artistIndex]?.id;
-                this.pivotTime = Date.now();
 
                 try {
+                    this.onPause = false;
+                    this.pivotTime = Date.now();
                     // Send drawing information to the artist
                     io.to(obj.artist).emit("provide-public-word-to-artist", playersInfo.get(obj.artist), obj.wordToDraw);
+                    this.currentWord = obj.wordToDraw;
                     console.log('Word sent to artist: ' + obj.wordToDraw);
                     this.roomPlayers[artistIndex].hasDrawnThisRound = true;
 
@@ -124,10 +144,16 @@ class PublicRoom {
                     artistSocket.broadcast.to(this.id).emit("provide-public-artist-info", playersInfo.get(obj.artist), this.hiddenWord); // Send artists {id, name, type, picture}
                     console.log('Artist sent to all players');
 
+                    this.waitingForNewArtist = false;
+                    this.waitingForNewRound = false;
+
                 } catch (err) {
                     console.log(err);
+                    this.onPause = true;
+                    this.pivotTime = Date.now();
                     // Make another artist when current artist leaves and causes error
                     this.artist = null;
+                    this.currentWord = null;
                     return this.startRound(io);
                 }
 
@@ -141,18 +167,24 @@ class PublicRoom {
 
                 // Artist's timer for drawing
                 let timer = setTimeout(() => {
-                    this.onPause = true;
                     clearInterval(hint);
-                    this.pivotTime = Date.now();
                     // If artist leaves the room, then continue the timer and
                     // handle it on the client side by showing that, artist is still present and
                     // update the artist once their session is completed
 
-                    // Stop drawing session of current artist, and start new one
+                    // Stop drawing session of current artist immediately
                     this.artist = null;
-                    io.to(this.id).emit("provide-public-artist-over", playersInfo.get(obj.artist));
+                    io.to(this.id).emit("provide-public-artist-over", playersInfo.get(obj.artist), obj?.wordToDraw);
                     console.log('Artist is over');
-                    this.startRound(io);
+                    this.currentWord = null;
+                    this.waitingForNewArtist = true;
+                    this.onPause = true;
+                    this.pivotTime = Date.now();
+                    // Wait after the artist's session is completed;
+                    setTimeout(() => {
+                        // Start drawing session for another player
+                        return this.startRound(io);
+                    }, this.timeBtwArtSessions);
                 }, this.playerTime);
             } else {
                 // If artist is not there then choose another artist
@@ -168,7 +200,11 @@ class PublicRoom {
             // Send reults immediately
             io.to(this.id).emit("provide-public-round-over", "These are result of round", "These are net results");
             console.log('Round is over');
+            this.waitingForNewRound = true;
+            this.onPause = true;
+            this.pivotTime = Date.now();
             this.roundsCompleted++;
+
             if (this.roundsCompleted >= this.totalRounds) {
                 return this.endGame(io);
             } else {
@@ -177,27 +213,18 @@ class PublicRoom {
                     return pl;
                 });
                 setTimeout(() => {
-                    this.startRound(io);
-                }, this.waitingDuration);
+                    return this.startRound(io);
+                }, this.timeBtwRounds);
             }
         } else {
-            // Don't wait if round not over
-            startPlayer();
+            // Start next player to be artist
+            return startPlayer();
         }
     }
     endGame(io) {
+        this.isGameOver = true;
         io.to(this.id).emit("provide-public-game-ended", "The game has ended");
-        // Delete the room
-        publicRooms.delete(this.id);
-        // Remove all players from this room and their stored info
-        const socketsInRoom = io.sockets.adapter.rooms.get(this.id);
-        // Iterate over all sockets in the room
-        if (socketsInRoom) {
-            for (const socketId of socketsInRoom) {
-                playersRoom.delete(socketId);
-                playersInfo.delete(socketId);
-            }
-        }
+        // Let players chat even after game is over
         console.log('Game is over');
     }
 }
@@ -268,6 +295,7 @@ const addInNewRoom = (player) => {
 const removePlayer = (player) => {
     if (!player) return null;
     let roomid = playersRoom.get(player.id);
+    playersRoom.delete(roomid);
     let room = publicRooms.get(roomid);
     if (room) {
         room.removePlayer(player);
@@ -322,7 +350,25 @@ const serializeRoom = (player) => {
             }
         }
         // Return necessary game info for players interactivity
-        return { roomid, room: room, players: data, playerTime: room.playerTime, waitingDuration: room.waitingDuration };
+        const obj = {
+            roomid,
+            room: room,
+            players: data,
+            playerTime: room.playerTime,
+            timeBtwRounds: room.timeBtwRounds,
+            timeBtwArtSessions: room.timeBtwArtSessions,
+            artist: room.artist,
+            hiddenWord: room.hiddenWord,
+            onPause: room.onPause,
+            hasStarted: room.hasStarted,
+            waitingForNewArtist: room.waitingForNewArtist,
+            waitingForNewRound: room.waitingForNewRound,
+            isGameOver: room.isGameOver,
+            timeSpent: Date.now() - room.pivotTime,
+            roundsCompleted: room.roundsCompleted,
+            totalRounds: room.totalRounds,
+        };
+        return obj;
     } catch (err) {
         console.log(err);
         return {};

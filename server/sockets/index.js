@@ -3,6 +3,8 @@ const User = require('../models/user');
 const Guest = require('../models/guest');
 const PublicRoom = require('./PublicRoom');
 
+const removeObjectKey = require('./tools').removeObjectKey;
+
 let playersInfo = require('./data').playersInfo; // { player_sid: {id, name, type, picture} }
 
 // Get cookies from socket request from user
@@ -105,7 +107,7 @@ module.exports = (io) => {
                 try {
                     let roominfo = PublicRoom.serializeRoom({ id: socket.id }, playersInfo);
                     if (roominfo.roomid) {
-                        socket.emit("provide-init-public-room", roominfo);
+                        socket.emit("provide-init-public-room", removeObjectKey(roominfo, "room"));
                         // Broadcast in room when new player joins
                         socket.broadcast.to(roominfo.roomid).emit("provide-new-public-player", playersInfo.get(socket.id));
                         // Call start function
@@ -126,8 +128,10 @@ module.exports = (io) => {
             try {
                 if (socket.user || socket.guest) {
                     let player = playersInfo.get(socket.id);
-                    socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player.name, message: text });
-                    socket.emit("provide-new-public-chat-self", { sender: "me", message: text });
+                    if (player) {
+                        socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player.name, message: text });
+                        socket.emit("provide-new-public-chat-self", { sender: "me", message: text });
+                    }
                     // TODO: More when actual guessing game is implemented
                 }
             } catch (err) {
