@@ -15,7 +15,7 @@ const playersRoom = new Map(); // {player_sid: roomid}
 
 class PublicRoom {
     id;
-    roomPlayers;
+    roomPlayers; // Map of players in this room
     lowerLimit;
     playerTime;
     timeBtwRounds;
@@ -37,7 +37,8 @@ class PublicRoom {
 
     constructor(roomId) {
         this.id = roomId;
-        this.roomPlayers = []; // [ {id(player_sid), hasDrawnThisRound} ]
+        // this.roomPlayers = []; // [ {id(player_sid), hasDrawnThisRound} ]
+        this.roomPlayers = new Map(); // [id(player_sid): {hasDrawnThisRound, score}]
         this.lowerLimit = startLimit;
         this.playerTime = defaultPlayerTime;
         this.totalRounds = defaultTotalRounds;
@@ -64,7 +65,7 @@ class PublicRoom {
     }
     addPlayer(player) {
         try {
-            this.roomPlayers.push({ ...player, hasDrawnThisRound: false });
+            this.roomPlayers.set(player.id, { hasDrawnThisRound: false, score: 0 });
             this.roomSize++;
             // Start the game once minimum players are there
             return this;
@@ -74,9 +75,10 @@ class PublicRoom {
         }
     }
     removePlayer(player) {
-        let index = this.roomPlayers.findIndex(plr => (plr && plr.id === player.id));
-        this.roomPlayers[index] = null;
-        this.roomSize--;
+        if (this.roomPlayers.has(player.id)) {
+            this.roomPlayers.delete(player.id);
+            this.roomSize--;
+        }
         return this.roomPlayers;
     }
 
@@ -115,19 +117,26 @@ class PublicRoom {
         obj.wordToDraw = words.at(Math.floor(Math.random() * words.length)); // Choose random word
 
 
-        let artistIndex = this.roomPlayers.findIndex((val) => (val && val.hasDrawnThisRound === false)); // Choose player to be artist
+        let artistKey = null; // Choose player to be artist
+        for (const key of this.roomPlayers.keys()) {
+            let obj = this.roomPlayers.get(key);
+            if (obj && obj.hasDrawnThisRound === false) {
+                artistKey = key;
+                break;
+            }
+        }
         // Artist might leave just after we decided who is going to be artist
         // In that case its array position will be null
 
 
         const startPlayer = () => {
-            console.log(this.roomPlayers, artistIndex);
-            let artist = this.roomPlayers[artistIndex];
+            console.log(this.roomPlayers, artistKey);
+            let artist = this.roomPlayers.get(artistKey);
             this.artist = artist;
             if (artist) {
                 // If artist is still in room, then continue the game
 
-                obj.artist = this.roomPlayers[artistIndex]?.id;
+                obj.artist = artistKey;
 
                 try {
                     this.onPause = false;
@@ -136,7 +145,9 @@ class PublicRoom {
                     io.to(obj.artist).emit("provide-public-word-to-artist", playersInfo.get(obj.artist), obj.wordToDraw);
                     this.currentWord = obj.wordToDraw;
                     console.log('Word sent to artist: ' + obj.wordToDraw);
-                    this.roomPlayers[artistIndex].hasDrawnThisRound = true;
+                    let temp = this.roomPlayers.get(artistKey);
+                    temp.hasDrawnThisRound = true;
+                    this.roomPlayers.set(artistKey, temp);
 
                     // Send game information to other players in room
                     this.hiddenWord = obj.wordToDraw.replace(/[^ ]/g, '_');
@@ -193,10 +204,10 @@ class PublicRoom {
             }
         }
 
-        if (artistIndex === -1) {
+        if (artistKey === null) {
             this.artist = null;
             // TODO: Delete the room if this room is empty
-            // If artistIndex==-1, close this round and start new round
+            // If artistKey==null, close this round and start new round
             // Send reults immediately
             io.to(this.id).emit("provide-public-round-over", "These are result of round", "These are net results");
             console.log('Round is over');
@@ -208,10 +219,13 @@ class PublicRoom {
             if (this.roundsCompleted >= this.totalRounds) {
                 return this.endGame(io);
             } else {
-                this.roomPlayers = this.roomPlayers.map((pl) => {
-                    (pl ? pl.hasDrawnThisRound = false : null);
-                    return pl;
+                const mapToArray = Array.from(this.roomPlayers).map(([key, value]) => {
+                    if (key && value) value.hasDrawnThisRound = false;
+                    return [key, value];
                 });
+                // Create a new Map from the transformed array
+                this.roomPlayers = new Map(mapToArray);
+
                 setTimeout(() => {
                     return this.startRound(io);
                 }, this.timeBtwRounds);
@@ -338,9 +352,9 @@ const serializeRoom = (player) => {
         if (!players)
             return {};
         let data = [];
-        for (let player of players) {
-            if (player) {
-                let sid = player.id;
+        for (let key of players.keys()) {
+            if (key && players.get(key)) {
+                let sid = key;
                 data.push({
                     id: playersInfo.get(sid).id,
                     name: playersInfo.get(sid).name,
