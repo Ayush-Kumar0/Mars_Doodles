@@ -1,11 +1,11 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const Guest = require('../models/guest');
-const PublicRoom = require('./PublicRoom');
+const GuestPublicRoom = require('./GuestPublicRoom');
 
-const removeObjectKey = require('./tools').removeObjectKey;
 
-let playersInfo = require('./data').playersInfo; // { player_sid: {id, name, type, picture} }
+
+let guestsInfo = require('./data').guestsInfo; // { player_sid: {id, name, type, picture} }
 
 // Get cookies from socket request from user
 async function getCookies(socket, next) {
@@ -51,102 +51,16 @@ module.exports = (io) => {
 
     // On Connection
     io.on('connection', async (socket) => {
-        console.log(socket.id);
+
+        // For Public rooms
+        GuestPublicRoom.init(socket, io);
 
 
 
-        // Public room provider
-        socket.on("get-public-room", (options) => {
-            // Iff socket is authorized
-            if (socket.user || socket.guest) {
-                // Do mapping of {socketid: roomid} also
-                PublicRoom.addInRoom({ id: socket.id })
-                    .then(async result => {
-                        try {
-                            // Store players info
-                            async function getPlayersInfo(socket) {
-                                if (socket.user) {
-                                    const user = await User.findById(socket.user._id);
-                                    return {
-                                        id: user.id,
-                                        name: user.name,
-                                        type: 'user',
-                                        picture: user.picture
-                                    };
-                                } else if (socket.guest) {
-                                    const guest = await Guest.findById(socket.guest._id);
-                                    return {
-                                        id: guest.id,
-                                        name: guest.name,
-                                        type: 'guest'
-                                    };
-                                } else
-                                    return null;
-                            }
-                            playersInfo.set(socket.id, await getPlayersInfo(socket));
-                            // Emit the room id to user so they can join
-                            socket.join(result.id);
-                            socket.emit("provide-public-room", true);
-                        } catch (err) {
-                            console.log(err);
-                            socket.emit("provide-public-room", false);
-                        }
-                    }).catch(err => {
-                        console.log(err);
-                        socket.emit("provide-public-room", false);
-                    });
-            } else {
-                console.log('Not authorized');
-                socket.emit("provide-public-room", false);
-            }
-        });
+        // For Private rooms
+        (function (socket, io) {
 
-        // Providing public rooms current state
-        socket.on("get-init-public-room", (options) => {
-            if (socket.user || socket.guest) {
-                try {
-                    let roominfo = PublicRoom.serializeRoom({ id: socket.id }, playersInfo);
-                    if (roominfo.roomid) {
-                        socket.emit("provide-init-public-room", removeObjectKey(roominfo, "room"));
-                        // Broadcast in room when new player joins
-                        socket.broadcast.to(roominfo.roomid).emit("provide-new-public-player", playersInfo.get(socket.id));
-                        // Call start function
-                        if (roominfo.room) {
-                            roominfo.room.start(io);
-                        }
-                    }
-                } catch (err) {
-                    console.log(err);
-                    socket.emit("provide-init-public-room", null);
-                }
-            } else {
-                socket.emit("provide-init-public-room", null);
-            }
-        });
-
-        socket.on("send-new-public-chat", (text) => {
-            try {
-                if (socket.user || socket.guest) {
-                    let player = playersInfo.get(socket.id);
-                    if (player && !PublicRoom.isPlayerArtist({ id: socket.id })) {
-                        // Along with message, send the score if scored
-                        const score = PublicRoom.giveScoreToPlayer({ id: socket.id }, text);
-                        if (score) {
-                            // Someone guessed
-                            socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: '', score, guessed: true });
-                            socket.emit("provide-new-public-chat-self", { sender: player, message: text, score, guessed: true });
-                        } else {
-                            // Not guessed, but have to filter for any hints
-                            const filteredText = PublicRoom.filterText({ id: socket.id }, text);
-                            socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: filteredText, score, guessed: false });
-                            socket.emit("provide-new-public-chat-self", { sender: player, message: filteredText, score, guessed: false });
-                        }
-                    }
-                }
-            } catch (err) {
-                console.log(err);
-            }
-        });
+        })(socket, io);
 
 
 
@@ -157,13 +71,12 @@ module.exports = (io) => {
             }
             if (socket.guest) {
                 // Inform others in room that guest has left.
-                if (PublicRoom.shouldInformIfPlayerLeaves({ id: socket.id }))
-                    socket.broadcast.to(PublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", playersInfo.get(socket.id));
-                socket.leave(PublicRoom.getUsersRoomId({ id: socket.id }));
-                PublicRoom.removePlayer({ id: socket.id });
+                socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", guestsInfo.get(socket.id));
+                socket.leave(GuestPublicRoom.getUsersRoomId({ id: socket.id }));
+                GuestPublicRoom.removePlayer({ id: socket.id }, io);
             }
-            if (playersInfo.has(socket.id))
-                playersInfo.delete(socket.id);
+            if (guestsInfo.has(socket.id))
+                guestsInfo.delete(socket.id);
         });
     });
 }

@@ -15,7 +15,7 @@ import roomContext from '../contexts/room/roomContext';
 function Guest() {
     const nav = useNavigate();
     const [player, setPlayer] = useContext(authContext);
-    const [socket, setSocket] = useContext(roomContext);
+    const { socket, setSocket, setLatency } = useContext(roomContext);
     const [loading, setLoading] = useState(true);
     const [optionsVisible, setOptionsVisible] = useState(false);
 
@@ -59,7 +59,7 @@ function Guest() {
 
     // START the public game on 'PLAY'
     const playButtonPressed = (e) => {
-        const publicGame = new PublicGame(nav, toast, setSocket);
+        const publicGame = new PublicGame(nav, toast, setSocket, setLatency);
         publicGame.getRoom();
     }
 

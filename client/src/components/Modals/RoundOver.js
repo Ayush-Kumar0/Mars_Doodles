@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import Modal2 from '../Modals/Modal2';
 
-function RoundOver({ close, scoreIncrements }) {
+function RoundOver({ close, currentRoundScore }) {
     useEffect(() => {
-        console.log(scoreIncrements);
+        console.log(currentRoundScore);
     })
     return (
         <Modal2 close={close}>

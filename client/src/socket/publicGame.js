@@ -36,7 +36,7 @@ class PublicGame {
 
     // Get into available room or create new one
     getRoom() {
-        this.socket.emit("get-public-room");
+        this.socket.emit("get-public-room", localStorage.getItem('prev_public_room_id'));
     }
 }
 

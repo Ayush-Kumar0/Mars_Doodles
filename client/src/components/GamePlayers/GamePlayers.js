@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-function GamePlayers({ playersParent, socket, artistPlayer, userGuest }) {
+function GamePlayers({ playersParent, socket, artistPlayer, userGuest, currentResults }) {
     const [players, setPlayers] = useState(playersParent);
     const [artist, setArtist] = useState(artistPlayer);
 
@@ -14,6 +14,10 @@ function GamePlayers({ playersParent, socket, artistPlayer, userGuest }) {
     }, [playersParent]);
 
 
+    useEffect(() => {
+        console.log(currentResults);
+    }, [currentResults]);
+
     return (
         <PlayersContainer>
             <p className='players'>Players</p>
@@ -22,7 +26,7 @@ function GamePlayers({ playersParent, socket, artistPlayer, userGuest }) {
                     return (<li key={player.id} className={(((userGuest.guest && userGuest.guest._id === player.id) || (userGuest.user && userGuest.user._id === player.id)) ? 'myself' : '')}>
                         <img className='profile_picture' src={(player && player.picture) ? player.picture : '/assets/no_profile_picture.svg'} />
                         <p>{player.name}</p>
-                        <p className='score'>{player && player.score ? player.score : 0}</p>
+                        <p className='score'>{Number.isInteger(currentResults.get(player.id)) ? currentResults.get(player.id) : 0}</p>
                         {artist && artist.id === player.id &&
                             <img className='draw_icon' src='/assets/draw_icon.svg' />}
                     </li>);
