@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
 function Options() {
-    const [chat, setChat] = useState(() => (localStorage.getItem('chatEnabled') ? localStorage.getItem('chatEnabled') : true));
+    const [chat, setChat] = useState(() => (localStorage.getItem('chatEnabled') === 'true' ? true : false));
     const [maxPlayers, setMaxPlayers] = useState(() => (localStorage.getItem('maxPlayers') ? localStorage.getItem('maxPlayers') : 16)); // 4 to 31
 
     const handleChatCheckbox = (e) => {
-        setChat(!chat);
-        localStorage.setItem('chatEnabled', chat);
+        setChat(prevChat => !prevChat);
     }
+    useEffect(() => {
+        localStorage.setItem('chatEnabled', chat);
+    }, [chat]);
 
     const handleMaxPlayerEnter = (e) => {
         if (e.key === 'Enter') {

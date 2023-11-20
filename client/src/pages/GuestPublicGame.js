@@ -9,7 +9,7 @@ import ArtSessionOver from '../components/Modals/ArtSessionOver';
 import RoundOver from '../components/Modals/RoundOver';
 import GameOver from '../components/Modals/GameOver';
 
-function PublicGame() {
+function GuestPublicGame() {
     const [userGuest, setUserGuest] = useContext(authContext);
     const { socket, setSocket } = useContext(roomContext);
     const [publicRoom, setPublicRoom] = useState(null);
@@ -34,7 +34,7 @@ function PublicGame() {
     const [currentRoundScore, setCurrentRoundScore] = useState([]);
     const [gameOverModalVisible, setGameOverModalVisible] = useState(false);
     // Results
-    const [currentResults, setCurrentResults] = useState(new Map());
+    const [currentResults, setCurrentResults] = useState({});
 
 
     // Room joining events
@@ -46,8 +46,6 @@ function PublicGame() {
             if (!result) {
                 return console.log('Server error');
             }
-            // Setting the result of initial state of room
-            localStorage.setItem('prev_public_room_id', result.roomid);
             setPublicRoom(result);
             setPlayers(result.players);
             setArtist(result.artist);
@@ -55,11 +53,11 @@ function PublicGame() {
             setWord(result.hiddenWord);
             setHasStarted(result.hasStarted);
             setRound(result.roundsCompleted);
-            let scoreMap = new Map();
+            let scoreObj = {};
             for (let plr of result.players) {
-                scoreMap.set(plr.id, plr.score);
+                scoreObj[plr.id] = plr.score;
             }
-            setCurrentResults(scoreMap);
+            setCurrentResults(scoreObj);
         });
 
         return () => {
@@ -101,11 +99,6 @@ function PublicGame() {
             setArtOverModalVisible(false);
             setTimeout(() => {
                 socket.emit("get-public-artist-over");
-                setArtOverModalVisible(true);
-                setArtOverMsg(`Waiting for next Drawing...`);
-                setWaitingForNewArtist(true);
-                setWaitingForNewRound(false);
-                setTimer(publicRoom.timeBtwArtSessions);
             }, publicRoom.playerTime);
         });
 
@@ -117,17 +110,25 @@ function PublicGame() {
             });
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
-            setTimer(publicRoom.timeBtwArtSessions);
+            // setTimer(publicRoom.timeBtwArtSessions);
+            setTimer(0);
+        });
+        socket.on("provide-public-your-turn-over", () => {
+            setAmIArtist(false);
+            setWaitingForNewArtist(true);
+            setWaitingForNewRound(false);
+            // setTimer(publicRoom.timeBtwArtSessions);
+            setTimer(0);
         });
 
-        socket.on("provid-public-round-over", (result) => {
+        socket.on("provide-public-round-over", (result) => {
             setArtOverModalVisible(false);
             setRoundOverModalVisible(true);
             setCurrentRoundScore([]);
             setWaitingForNewArtist(false);
             setWaitingForNewRound(true);
-            setTimer(publicRoom.timeBtwRounds);
-            setRoundOverModalVisible(false);
+            // setTimer(publicRoom.timeBtwRounds);
+            setTimer(0);
         });
 
         socket.on("provide-public-game-ended", (result) => {
@@ -184,8 +185,9 @@ function PublicGame() {
         console.log(player, score);
         if (player && player.id && Number.isInteger(score)) {
             setCurrentResults(prevResults => {
-                prevResults.set(player.id, (player.score ? player.score : 0) + score);
-                return prevResults;
+                const updatedResults = Object.create(prevResults);
+                updatedResults[player.id] = (updatedResults[player.id] || 0) + score;
+                return updatedResults;
             });
         }
     }
@@ -209,46 +211,61 @@ function PublicGame() {
 
 
 
+
 function Timer({ className, timer, roundsCompleted, totalRounds }) {
     const [time, setTime] = useState(timer);
 
     useEffect(() => {
-        setTime(timer);
-        let timeinterval = setInterval(() => {
-            setTime(prevTime => {
-                if (prevTime <= 1000) {
-                    clearInterval(timeinterval);
-                    return 0;
-                } else
-                    return prevTime - 1000;
-            });
-        }, 1000);
+        let startTime;
 
-        return () => {
-            clearInterval(timeinterval);
+        function animate(timestamp) {
+            if (!startTime) {
+                startTime = timestamp;
+            }
+
+            const elapsed = timestamp - startTime;
+            setTime((prevTime) => {
+                const newTime = timer - elapsed;
+
+                if (newTime <= 0) {
+                    return 0;
+                } else {
+                    return newTime;
+                }
+            });
+
+            if (elapsed < timer) {
+                requestAnimationFrame(animate);
+            }
         }
+
+        const animationFrame = requestAnimationFrame(animate);
+
+        return () => cancelAnimationFrame(animationFrame);
     }, [timer]);
 
-
     const getTime = (time) => {
-        if (time && Number.isInteger(timer)) {
+        time = Math.floor(time);
+        if (time && Number.isInteger(time)) {
             let min = Math.floor(time / 1000 / 60);
             let sec = Math.floor(time / 1000) - min * 60;
             return min + ':' + (sec < 10 ? '0' : '') + sec;
-        } else
+        } else {
             return '';
-
-    }
+        }
+    };
 
     return (
         <span className={className}>
-            <span>{
-                (roundsCompleted !== 0) ? `Round: ${roundsCompleted}/${totalRounds}` : ''
-            }</span>
+            <span>
+                {roundsCompleted !== 0 ? `Round: ${roundsCompleted}/${totalRounds}` : ''}
+            </span>
             &nbsp;
-            {getTime(time)}</span>
+            {getTime(time)}
+        </span>
     );
 }
+
 
 
 
@@ -289,4 +306,4 @@ const Topbar = styled.div`
     }
 `;
 
-export default PublicGame;
+export default GuestPublicGame;

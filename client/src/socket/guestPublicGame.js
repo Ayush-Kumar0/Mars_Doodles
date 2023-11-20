@@ -1,7 +1,7 @@
 import Connection from ".";
 
 
-class PublicGame {
+class GuestPublicGame {
     connection;
     socket;
     static nav;
@@ -36,8 +36,8 @@ class PublicGame {
 
     // Get into available room or create new one
     getRoom() {
-        this.socket.emit("get-public-room", localStorage.getItem('prev_public_room_id'));
+        this.socket.emit("get-public-room");
     }
 }
 
-export default PublicGame;
+export default GuestPublicGame;

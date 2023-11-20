@@ -71,12 +71,11 @@ module.exports = (io) => {
             }
             if (socket.guest) {
                 // Inform others in room that guest has left.
-                socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", guestsInfo.get(socket.id));
+                socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", guestsInfo[socket.id]);
                 socket.leave(GuestPublicRoom.getUsersRoomId({ id: socket.id }));
                 GuestPublicRoom.removePlayer({ id: socket.id }, io);
             }
-            if (guestsInfo.has(socket.id))
-                guestsInfo.delete(socket.id);
+            delete guestsInfo[socket.id];
         });
     });
 }

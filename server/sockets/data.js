@@ -1,1 +1,1 @@
-module.exports.guestsInfo = new Map(); // { socketid: {id, name, type, picture} }
+module.exports.guestsInfo = {}; // { socketid: {id, name, type, picture} }

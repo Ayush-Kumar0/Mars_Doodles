@@ -48,8 +48,10 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent }) {
     const handleSendMessage = (e) => {
         if (e.key === 'Enter') {
             // Send message to server for validation
-            socket.emit("send-new-public-chat", text);
-            setText('');
+            if (text !== '') {
+                socket.emit("send-new-public-chat", text);
+                setText('');
+            }
         }
     }
 

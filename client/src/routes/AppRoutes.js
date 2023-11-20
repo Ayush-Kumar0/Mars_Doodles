@@ -6,7 +6,7 @@ import Guest from '../pages/Guest';
 import User from '../pages/User';
 import Signin from '../pages/Signin';
 import Signup from '../pages/Signup';
-import PublicGame from '../pages/PublicGame';
+import GuestPublicGame from '../pages/GuestPublicGame';
 import RoomState from '../contexts/room/roomState';
 
 function AppRoutes() {
@@ -21,12 +21,12 @@ function AppRoutes() {
             {player.type === 'user' &&
                 <>
                     <Route path='/user' element={<RoomState><User /></RoomState>} />
-                    <Route path='/user/public/' element={<RoomState><PublicGame /></RoomState>} />
+                    <Route path='/user/public/' element={<RoomState></RoomState>} />
                 </>}
             {player.type === 'guest' &&
                 <>
                     <Route path='/guest' element={<RoomState><Guest /></RoomState>} />
-                    <Route path='/guest/public/' element={<RoomState><PublicGame /></RoomState>} />
+                    <Route path='/guest/public/' element={<RoomState><GuestPublicGame /></RoomState>} />
                 </>}
         </Routes>
     );

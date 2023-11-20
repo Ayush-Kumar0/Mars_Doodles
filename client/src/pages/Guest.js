@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import LoadingModal from '../components/Loader/loader';
 import Modal1 from '../components/Modals/Modal1';
 import Options from '../components/Modals/Options';
-import PublicGame from '../socket/publicGame';
+import GuestPublicGame from '../socket/guestPublicGame';
 import { useNavigate } from 'react-router-dom';
 import roomContext from '../contexts/room/roomContext';
 
@@ -59,8 +59,8 @@ function Guest() {
 
     // START the public game on 'PLAY'
     const playButtonPressed = (e) => {
-        const publicGame = new PublicGame(nav, toast, setSocket, setLatency);
-        publicGame.getRoom();
+        const guestPublicGame = new GuestPublicGame(nav, toast, setSocket, setLatency);
+        guestPublicGame.getRoom();
     }
 
 
@@ -76,6 +76,7 @@ function Guest() {
                     picture='/assets/no_profile_picture.svg'
                     handleOptionsButtonClick={handleOptionsOpen}
                     playButtonPressed={playButtonPressed}
+                    isUser={false}
                 />
             </Guestcontainer>
             {loading === true && <LoadingModal visible='visible' />}
