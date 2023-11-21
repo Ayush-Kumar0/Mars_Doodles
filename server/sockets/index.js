@@ -2,10 +2,12 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const Guest = require('../models/guest');
 const GuestPublicRoom = require('./GuestPublicRoom');
+const UserPublicRoom = require('./UserPublicRoom');
 
 
 
 let guestsInfo = require('./data').guestsInfo; // { player_sid: {id, name, type, picture} }
+let usersInfo = require('./data').usersInfo; // { email: {id, name, type, picture} }
 
 // Get cookies from socket request from user
 async function getCookies(socket, next) {
@@ -71,14 +73,16 @@ module.exports = (io) => {
 
         // For Users public and private rooms
         if (socket && socket.user) {
-            (function (socket, io) {
-
-            })(socket, io);
+            UserPublicRoom.init(socket, io);
             socket.on("disconnect", (reason) => {
                 // Player remover from Public room
                 if (socket.user) {
-
+                    // Inform others in room that guest has left.
+                    socket.broadcast.to(UserPublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", usersInfo[socket.id]);
+                    socket.leave(UserPublicRoom.getUsersRoomId({ id: socket.id }));
+                    UserPublicRoom.removePlayer({ id: socket.id }, io);
                 }
+                delete usersInfo[socket.id];
             });
         }
     });
