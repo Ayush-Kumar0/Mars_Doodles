@@ -89,6 +89,12 @@ const ChatBoxContainer = styled.div`
     border: 2px solid var(--primary);
     min-height: calc(100vh - var(--topbar-height));
     background-color: var(--whitesmoke);
+    @media (max-width:720px) {
+        order: 2;
+        width: 55vw;
+        min-height: unset;
+        height: calc(50vh - var(--topbar-height));
+    }
 
     .heading {
         text-align: center;
@@ -113,6 +119,9 @@ const ChatList = styled.div`
     width: 100%;
     height: calc(100vh - var(--topbar-height) - var(--chatinput-height) - 44px);
     overflow-y: auto;
+    @media (max-width:720px) {
+        height: calc(50vh - var(--topbar-height) - var(--chatinput-height) - 44px);
+    }
 
     ul {
         list-style-type: none;

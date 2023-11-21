@@ -10,7 +10,7 @@ import ArtSessionOver from '../components/Modals/ArtSessionOver';
 import RoundOver from '../components/Modals/RoundOver';
 import GameOver from '../components/Modals/GameOver';
 
-function GuestPublicGame() {
+function UserPublicGame() {
     const nav = useNavigate();
     const [userGuest, setUserGuest] = useContext(authContext);
     const { socket, setSocket } = useContext(roomContext);
@@ -337,4 +337,4 @@ const Leave = styled.button`
     cursor: pointer;
 `;
 
-export default GuestPublicGame;
+export default UserPublicGame;

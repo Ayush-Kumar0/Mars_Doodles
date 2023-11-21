@@ -3,13 +3,13 @@ const uuidv4 = require('uuid').v4;
 const words = require('../data/words');
 
 const guestsInfo = require('./data').guestsInfo; // { player_sid: {id, name, type} }
-const removeObjectKey = require('./tools').removeObjectKey;
+const removeObjectKey = require('./utils').removeObjectKey;
 
 
 const startLimit = 2, roomLimit = 31;
-const defaultPlayerTime = 10000, defaultTimeBtwRounds = 5000, defaultTimeBtwArtSessions = 5000;
+const defaultPlayerTime = 30000, defaultTimeBtwRounds = 5000, defaultTimeBtwArtSessions = 3000;
 const defaultTotalRounds = 2, defaultPercentWordReveal = 1;
-const latencyDelay = 2000;
+const latencyDelay = 5000;
 
 
 

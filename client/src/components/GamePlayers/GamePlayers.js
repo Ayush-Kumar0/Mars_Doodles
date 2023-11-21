@@ -48,6 +48,12 @@ const PlayersContainer = styled.div`
     min-height: calc(100vh - var(--topbar-height));
     box-sizing: border-box;
     border: 2px solid var(--primary);
+    @media (max-width:720px) {
+        order: 1;
+        width: 45vw;
+        min-height: unset;
+        height: calc(50vh - var(--topbar-height));
+    }
 
     .players {
         text-align: center;
@@ -64,6 +70,10 @@ const PlayersContainer = styled.div`
         max-height: calc(100vh - var(--topbar-height) - 44px);
         overflow-x: hidden;
         overflow-y: auto;
+        @media (max-width:720px) {
+            max-height: unset;
+            height: calc(100vh - var(--topbar-height) - var(--chatinput-height) - 44px);
+        }
 
         li {
             /* height: 50px; */

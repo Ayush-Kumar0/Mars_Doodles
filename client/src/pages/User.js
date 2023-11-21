@@ -9,6 +9,7 @@ import Modal1 from '../components/Modals/Modal1';
 import Options from '../components/Modals/Options';
 import { useNavigate } from 'react-router-dom';
 import roomContext from '../contexts/room/roomContext';
+import UserPublicGame from './UserPublicGame';
 
 function User() {
     const nav = useNavigate();
@@ -59,6 +60,8 @@ function User() {
     // START the public game on 'PLAY'
     const playButtonPressed = (e) => {
         console.log('User public and private game is to be implemented');
+        const userPublicGame = new UserPublicGame(nav, toast, setSocket);
+        userPublicGame.getRoom();
     }
 
 

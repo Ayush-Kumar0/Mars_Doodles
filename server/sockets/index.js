@@ -52,30 +52,34 @@ module.exports = (io) => {
     // On Connection
     io.on('connection', async (socket) => {
 
-        // For Public rooms
-        GuestPublicRoom.init(socket, io);
+        // For Guests public rooms
+        if (socket && socket.guest) {
+            GuestPublicRoom.init(socket, io);
+            socket.on("disconnect", (reason) => {
+                // Player remover from Public room
+                if (socket.guest) {
+                    // Inform others in room that guest has left.
+                    socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", guestsInfo[socket.id]);
+                    socket.leave(GuestPublicRoom.getUsersRoomId({ id: socket.id }));
+                    GuestPublicRoom.removePlayer({ id: socket.id }, io);
+                }
+                delete guestsInfo[socket.id];
+            });
+        }
 
 
 
-        // For Private rooms
-        (function (socket, io) {
+        // For Users public and private rooms
+        if (socket && socket.user) {
+            (function (socket, io) {
 
-        })(socket, io);
+            })(socket, io);
+            socket.on("disconnect", (reason) => {
+                // Player remover from Public room
+                if (socket.user) {
 
-
-
-        socket.on("disconnect", (reason) => {
-            // Player remover from Public room
-            if (socket.user) {
-
-            }
-            if (socket.guest) {
-                // Inform others in room that guest has left.
-                socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", guestsInfo[socket.id]);
-                socket.leave(GuestPublicRoom.getUsersRoomId({ id: socket.id }));
-                GuestPublicRoom.removePlayer({ id: socket.id }, io);
-            }
-            delete guestsInfo[socket.id];
-        });
+                }
+            });
+        }
     });
 }

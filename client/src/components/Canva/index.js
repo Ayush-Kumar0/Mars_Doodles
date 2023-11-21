@@ -1,15 +1,46 @@
 import React, { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components';
-import { Stage, Layer, Line, Text } from 'react-konva';
+import { Stage, Layer, Line } from 'react-konva';
 
 
 function Canva() {
-    const stageRef = useRef(null);
+    // For dimensions of canvas
+    const containerRef = useRef();
+    const toolboxRef = useRef();
+    const [dimensions, setDimensions] = useState({});
+    // Drawing states
     const [tool, setTool] = React.useState('pen');
     const [lines, setLines] = React.useState([]);
     const isDrawing = React.useRef(false);
 
 
+    // Layout and resizing of canvas 
+    useEffect(() => {
+        if (containerRef && toolboxRef) {
+            setDimensions({
+                width: containerRef.current.clientWidth,
+                height: containerRef.current.clientHeight - toolboxRef.current.clientHeight - 2,
+            });
+            console.log(containerRef.current, toolboxRef);
+        }
+        return () => {
+        }
+    }, [containerRef, toolboxRef]);
+    useEffect(() => {
+        const handleResize = (e) => {
+            if (containerRef && toolboxRef) {
+                setDimensions({
+                    width: containerRef.current.clientWidth,
+                    height: containerRef.current.clientHeight - toolboxRef.current.clientHeight - 2,
+                });
+            }
+        }
+        window.addEventListener('resize', handleResize);
+        return () => { window.removeEventListener('resize', handleResize); }
+    }, []);
+
+
+    // Drawing handlers
     const handleMouseDown = (e) => {
         isDrawing.current = true;
         const pos = e.target.getStage().getPointerPosition();
@@ -36,18 +67,19 @@ function Canva() {
         isDrawing.current = false;
     };
 
+
     return (
         <>
-            <CanvaContainer>
+            <CanvaContainer ref={containerRef}>
                 {/* Drawing board */}
                 <Stage
-                    ref={stageRef}
                     className='stage'
-                    width={window.innerWidth}
-                    height={window.innerHeight}
+                    width={dimensions.width}
+                    height={dimensions.height}
                     onMouseDown={handleMouseDown}
                     onMousemove={handleMouseMove}
-                    onMouseup={handleMouseUp}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
                 >
                     <Layer>
                         {lines.map((line, i) => (
@@ -68,7 +100,7 @@ function Canva() {
                 </Stage>
 
                 {/* Tool selector for drawing */}
-                <Toolbox>
+                <Toolbox ref={toolboxRef}>
                 </Toolbox>
             </CanvaContainer>
         </>
@@ -85,11 +117,20 @@ const CanvaContainer = styled.div`
     min-height: calc(100vh - var(--topbar-height));
     position: relative;
     padding-bottom: var(--toolbox-height);
+    @media (max-width:720px) {
+        order: -1;
+        width: 100vw;
+        height: 50vh;
+        min-height: 50vh;
+    }
 
     .stage {
         width: 100%;
         height: calc(100vh - var(--topbar-height) - var(--toolbox-height) - 4px);
         overflow: hidden;
+        @media (max-width:720px) {
+            height: calc(50vh - var(--topbar-height) - 4px);
+        }
     }
 `;
 
