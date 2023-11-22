@@ -11,6 +11,8 @@ function GamePlayers({ playersParent, socket, artistPlayer, userGuest, currentRe
 
     useEffect(() => {
         setPlayers(playersParent);
+        console.log(userGuest);
+        console.log(playersParent);
     }, [playersParent]);
 
 

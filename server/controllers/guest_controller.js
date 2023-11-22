@@ -48,6 +48,7 @@ module.exports.changeName = function (req, res) {
                 let data = {
                     type: 'guest',
                     guest: {
+                        _id: guest._id,
                         name: guest.name
                     }
                 }

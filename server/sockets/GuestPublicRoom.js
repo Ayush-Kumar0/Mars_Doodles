@@ -2,6 +2,9 @@ const Guest = require('../models/guest');
 const uuidv4 = require('uuid').v4;
 const words = require('../data/words');
 
+const addAlreadyPlaying = require('./utils').addAlreadyPlaying;
+const isAlreadyPlaying = require('./utils').isAlreadyPlaying;
+
 const guestsInfo = require('./data').guestsInfo; // { player_sid: {id, name, type} }
 const removeObjectKey = require('./utils').removeObjectKey;
 
@@ -18,7 +21,6 @@ const latencyDelay = 5000;
 
 
 
-let guestPublicRoomIds = []; // Undefined values should be cleared after few intervals
 // All public room objects
 const guestPublicRooms = {}; // {roomid: new GuestPublicRoom()}
 // User: Room
@@ -141,7 +143,7 @@ class GuestPublicRoom {
 
     // When should this room be joinalbe
     shouldJoin() {
-        if (this.getSize() === 0 || this.isGameOver || this.roundsCompleted >= this.totalRounds)
+        if (this.getSize() === 0 || this.getSize() >= roomLimit || this.isGameOver || this.roundsCompleted >= this.totalRounds)
             return false;
         else {
             return true;
@@ -315,7 +317,7 @@ const addInRoom = (player, io) => {
     return new Promise((resolve, reject) => {
         if (player) {
             // Search for room id using some optimization algorithm
-
+            let guestPublicRoomIds = Object.keys(guestPublicRooms);
             const findVacantRoomId = new Promise((resolve, reject) => {
                 function find(index) {
                     if (index >= guestPublicRoomIds.length) {
@@ -366,8 +368,6 @@ const addInNewRoom = (player, io) => {
     guestsRoom[player.id] = id;
     // Update rooms
     guestPublicRooms[id] = guestPublicRoom;
-    // Update id list
-    guestPublicRoomIds.push(id);
     return res;
 }
 
@@ -380,7 +380,6 @@ const removePlayer = (player, io) => {
         if (room.getSize() <= 0) {
             // Delete the room also
             delete guestPublicRooms[roomid];
-            guestPublicRoomIds = guestPublicRoomIds.filter(id => id != roomid);
         }
     }
 }
@@ -509,8 +508,15 @@ module.exports.init = (socket, io) => {
     socket.on("get-public-room", (options) => {
         // Iff socket is authorized
         if (socket.guest) {
+            console.log(guestsInfo);
+            if (isAlreadyPlaying(socket)) {
+                console.log('Simultaneous games not allowed');
+                socket.emit("provide-public-room", false, "Simultaneous games not allowed");
+                return;
+            }
             // Do mapping of {socketid: roomid} also
             try {
+                addAlreadyPlaying(socket);
                 // Store players info
                 async function getGuestsInfo(socket) {
                     if (socket.guest) {

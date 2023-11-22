@@ -293,6 +293,7 @@ module.exports.changeName = function (req, res) {
                 let data = {
                     type: 'user',
                     user: {
+                        _id: user._id,
                         name: user.name,
                         email: user.email,
                         picture: user.picture

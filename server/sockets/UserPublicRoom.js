@@ -2,7 +2,10 @@ const User = require('../models/user');
 const uuidv4 = require('uuid').v4;
 const words = require('../data/words');
 
-const usersInfo = require('./data').usersInfo; // { player_sid: {id, name, type} }
+const addAlreadyPlaying = require('./utils').addAlreadyPlaying;
+const isAlreadyPlaying = require('./utils').isAlreadyPlaying;
+
+const usersInfo = require('./data').usersInfo; // { email: {id, name, type, picture} }
 const removeObjectKey = require('./utils').removeObjectKey;
 
 
@@ -18,11 +21,10 @@ const latencyDelay = 5000;
 
 
 
-let userPublicRoomIds = []; // Undefined values should be cleared after few intervals
 // All public room objects
 const userPublicRooms = {}; // {roomid: new UserPublicRoom()}
 // User: Room
-const usersRoom = {}; // {player_sid: roomid}
+const usersRoom = {}; // {email: roomid}
 
 
 
@@ -44,7 +46,7 @@ const usersRoom = {}; // {player_sid: roomid}
 
 class UserPublicRoom {
     id;
-    roomPlayers; // [id(player_sid): {hasDrawnThisRound, score, hasGuessed}]
+    roomPlayers; // [email: {hasDrawnThisRound, score, hasGuessed, isPresent}]
     lowerLimit;
     playerTime;
     timeBtwRounds;
@@ -55,7 +57,7 @@ class UserPublicRoom {
     percentWordReveal;
     hiddenWord; // Partially revealed word
     roomSize;
-    artistSid;
+    artistEmail;
     artOverRequests;
 
     hasStarted;
@@ -66,7 +68,7 @@ class UserPublicRoom {
 
     constructor(roomId, io) {
         this.id = roomId;
-        this.roomPlayers = new Map(); // [id(player_sid): {hasDrawnThisRound, score, hasGuessed}]
+        this.roomPlayers = new Map(); // [email: {hasDrawnThisRound, score, hasGuessed, isPresent}]
         this.artOverRequests = new Set();
         this.lowerLimit = startLimit;
         this.playerTime = defaultPlayerTime;
@@ -96,8 +98,15 @@ class UserPublicRoom {
     }
     addPlayer(player) {
         try {
-            // Add the player is not present
-            this.roomPlayers.set(player.id, { hasDrawnThisRound: false, score: 0, hasGuessed: false });
+            // Modify player if present
+            if (this.roomPlayers.has(player.email)) {
+                let plr = this.roomPlayers.get(player.email);
+                plr.sid = player.sid;
+                plr.isPresent = true;
+            } else {
+                // Add the player is not present
+                this.roomPlayers.set(player.email, { sid: player.sid, hasDrawnThisRound: false, score: 0, hasGuessed: false, isPresent: true });
+            }
             this.roomSize++;
             return this;
         } catch (err) {
@@ -106,9 +115,9 @@ class UserPublicRoom {
         }
     }
     removePlayer(player, io) {
-        if (this.roomPlayers.has(player.id)) {
-            // Completely remove the player
-            this.roomPlayers.delete(player.id);
+        if (this.roomPlayers.has(player.email)) {
+            // Partially remove the player
+            this.roomPlayers.get(player.email).isPresent = false;
             this.roomSize--;
         }
         if (this.getSize() <= 1 && !this.isGameOver) {
@@ -122,9 +131,9 @@ class UserPublicRoom {
     updateScore(player, text) {
         try {
             if (this.currentWord && text && this.currentWord.toLowerCase() === text.trim().toLowerCase()) {
-                let oldPlayer = this.roomPlayers.get(player.id);
-                // // console.log(player.id, this.artistSid);
-                if (oldPlayer && !oldPlayer.hasGuessed && !this.isGameOver && player.id != this.artistSid) {
+                let oldPlayer = this.roomPlayers.get(player.email);
+                // console.log(player.email, this.artistEmail);
+                if (oldPlayer && !oldPlayer.hasGuessed && !this.isGameOver && player.email != this.artistEmail) {
                     // TODO: Add scoring algorithm to give scores correctly
                     const scoreAddition = 100;
                     oldPlayer.score = Number.isInteger(oldPlayer.score) ? (oldPlayer.score + scoreAddition) : scoreAddition;
@@ -141,7 +150,7 @@ class UserPublicRoom {
 
     // When should this room be joinalbe
     shouldJoin() {
-        if (this.getSize() === 0 || this.isGameOver || this.roundsCompleted >= this.totalRounds)
+        if (this.getSize() === 0 || this.getSize() >= roomLimit || this.isGameOver || this.roundsCompleted >= this.totalRounds)
             return false;
         else {
             return true;
@@ -150,7 +159,7 @@ class UserPublicRoom {
 
 
     getReadyForNextArtSession() {
-        // Restor room players to let them guess for next drawing
+        // Restore room players to let them guess for next drawing
         this.roomPlayers.forEach((value, key, map) => {
             if (key && value) {
                 value.hasGuessed = false;
@@ -173,18 +182,18 @@ class UserPublicRoom {
         this.isArtSessionOver = false;
         this.isRoundOver = false;
         // Choose player to be artist
-        let artistKey = null;
+        let artistEmail = null;
         for (const key of this.roomPlayers.keys()) {
             let obj = this.roomPlayers.get(key);
-            if (obj && obj.hasDrawnThisRound === false) {
-                artistKey = key;
+            if (obj && obj.isPresent && obj.hasDrawnThisRound === false) {
+                artistEmail = key;
                 break;
             }
         }
-        if (artistKey) {
+        if (artistEmail) {
             this.currentWord = words.at(Math.floor(Math.random() * words.length)); // Choose random word
             this.hiddenWord = this.currentWord.replace(/[^ ]/g, '_');
-            return this.artistSid = artistKey; // Set the artist for this session
+            return this.artistEmail = artistEmail; // Set the artist for this session
         } else {
             return null;
         }
@@ -193,8 +202,8 @@ class UserPublicRoom {
         this.isArtSessionOver = false;
         this.isRoundOver = false;
         // Send game information to other players in room
-        const artistSocket = io.sockets.sockets.get(this.artistSid);
-        artistSocket.broadcast.to(this.id).emit("provide-public-artist-info", usersInfo[this.artistSid], this.hiddenWord, this.roundsCompleted + 1); // Send artist's {id, name, type, picture}
+        const artistSocket = io.sockets.sockets.get(this.roomPlayers.get(this.artistEmail).sid);
+        artistSocket.broadcast.to(this.id).emit("provide-public-artist-info", usersInfo[this.artistEmail], this.hiddenWord, this.roundsCompleted + 1); // Send artist's {id, name, type, picture}
         // console.log('Artist sent to all players');
     }
     emitToArtist(io) {
@@ -202,9 +211,9 @@ class UserPublicRoom {
         this.isRoundOver = false;
         // Send drawing information to the artist
         this.artOverRequests.clear();
-        io.to(this.artistSid).emit("provide-public-word-to-artist", usersInfo[this.artistSid], this.currentWord, this.roundsCompleted + 1);
+        io.to(this.roomPlayers.get(this.artistEmail).sid).emit("provide-public-word-to-artist", usersInfo[this.artistEmail], this.currentWord, this.roundsCompleted + 1);
         // console.log('Word sent to artist: ' + this.currentWord);
-        let obj = this.roomPlayers.get(this.artistSid);
+        let obj = this.roomPlayers.get(this.artistEmail);
         obj.hasDrawnThisRound = true;
     }
     provideHints(io) {
@@ -220,10 +229,10 @@ class UserPublicRoom {
             this.isArtSessionOver = true;
             clearInterval(this.hint);
             // Provide the word to all players
-            const artistSocket = io.sockets.sockets.get(this.artistSid);
-            artistSocket.broadcast.to(this.id).emit("provide-public-artist-over", this.currentWord, usersInfo[this.artistSid]);
+            const artistSocket = io.sockets.sockets.get(this.roomPlayers.get(this.artistEmail).sid);
+            artistSocket.broadcast.to(this.id).emit("provide-public-artist-over", this.currentWord, usersInfo[this.artistEmail]);
             artistSocket.emit("provide-public-your-turn-over");
-            this.artistSid = null;
+            this.artistEmail = null;
             this.currentWord = null;
             this.getReadyForNextArtSession();
             setTimeout(() => {
@@ -315,7 +324,7 @@ const addInRoom = (player, io) => {
     return new Promise((resolve, reject) => {
         if (player) {
             // Search for room id using some optimization algorithm
-
+            let userPublicRoomIds = Object.keys(userPublicRooms);
             const findVacantRoomId = new Promise((resolve, reject) => {
                 function find(index) {
                     if (index >= userPublicRoomIds.length) {
@@ -340,7 +349,7 @@ const addInRoom = (player, io) => {
                     // Add player in existing room
                     let res = room.addPlayer(player);
                     // Update rooms
-                    usersRoom[player.id] = id;
+                    usersRoom[player.email] = id;
                     return resolve(res);
                 } else {
                     // Add player in new room
@@ -363,24 +372,21 @@ const addInNewRoom = (player, io) => {
     let id = uuidv4();
     let userPublicRoom = new UserPublicRoom(id, io);
     let res = userPublicRoom.addPlayer(player);
-    usersRoom[player.id] = id;
+    usersRoom[player.email] = id;
     // Update rooms
     userPublicRooms[id] = userPublicRoom;
-    // Update id list
-    userPublicRoomIds.push(id);
     return res;
 }
 
 const removePlayer = (player, io) => {
     if (!player) return null;
-    let roomid = usersRoom[player.id];
+    let roomid = usersRoom[player.email];
     let room = userPublicRooms[roomid];
     if (room) {
         room.removePlayer(player, io);
         if (room.getSize() <= 0) {
             // Delete the room also
             delete userPublicRooms[roomid];
-            userPublicRoomIds = userPublicRoomIds.filter(id => id != roomid);
         }
     }
 }
@@ -389,15 +395,15 @@ const removePlayer = (player, io) => {
 
 const getUsersRoomId = (player) => {
     if (player)
-        return usersRoom[player.id];
+        return usersRoom[player.email];
     return null;
 }
 
 
-// Serializes the room that the user/user is part of.
+// Serializes the room that the user is part of.
 const serializeRoom = (player) => {
     try {
-        let roomid = usersRoom[player.id];
+        let roomid = usersRoom[player.email];
         let room = userPublicRooms[roomid];
         let players = room?.getPlayers();
         console.log(players);
@@ -406,14 +412,15 @@ const serializeRoom = (player) => {
         let data = [];
         for (let key of players.keys()) {
             if (key && players.get(key)) {
-                let sid = key;
-                data.push({
-                    id: usersInfo[sid].id,
-                    name: usersInfo[sid].name,
-                    type: usersInfo[sid].type,
-                    picture: usersInfo[sid].picture,
-                    score: players.get(key).score,
-                });
+                let email = key;
+                if (players.get(key).isPresent)
+                    data.push({
+                        id: usersInfo[email].id,
+                        name: usersInfo[email].name,
+                        type: usersInfo[email].type,
+                        picture: usersInfo[email].picture,
+                        score: players.get(key).score,
+                    });
             }
         }
         // Return necessary game info for players interactivity
@@ -424,7 +431,7 @@ const serializeRoom = (player) => {
             playerTime: room.playerTime,
             timeBtwRounds: room.timeBtwRounds,
             timeBtwArtSessions: room.timeBtwArtSessions,
-            artist: usersInfo[room.artistSid],
+            artist: usersInfo[room.artistEmail],
             hiddenWord: room.hiddenWord,
             hasStarted: room.hasStarted,
             roundsCompleted: room.roundsCompleted,
@@ -440,7 +447,7 @@ const serializeRoom = (player) => {
 
 // Give score to the player
 const giveScoreToPlayer = (player, text) => {
-    const room = userPublicRooms[usersRoom[player.id]];
+    const room = userPublicRooms[usersRoom[player.email]];
     if (room)
         return room.updateScore(player, text);
     return null;
@@ -451,7 +458,7 @@ const giveScoreToPlayer = (player, text) => {
 const isPlayerArtist = (player) => {
     let roomid = getUsersRoomId(player);
     let room = userPublicRooms[roomid];
-    if (player.id !== room.artistSid)
+    if (player.email !== room.artistEmail)
         return false;
     return true;
 }
@@ -509,8 +516,17 @@ module.exports.init = (socket, io) => {
     socket.on("get-public-room", (options) => {
         // Iff socket is authorized
         if (socket.user) {
-            // Do mapping of {socketid: roomid} also
+            console.log(usersInfo);
+            // Email of logged in user
+            const email = socket.user.email;
+            if (isAlreadyPlaying(socket)) {
+                console.log('Simultaneous games not allowed');
+                socket.emit("provide-public-room", false, "Simultaneous games not allowed");
+                return;
+            }
+            // Do mapping of {email: roomid} also
             try {
+                addAlreadyPlaying(socket);
                 // Store players info
                 async function getUsersInfo(socket) {
                     if (socket.user) {
@@ -518,18 +534,19 @@ module.exports.init = (socket, io) => {
                         return {
                             id: user.id,
                             name: user.name,
-                            type: 'user'
+                            type: 'user',
+                            picture: user.picture
                         };
                     } else
                         return null;
                 }
                 getUsersInfo(socket)
                     .then(player => {
-                        usersInfo[socket.id] = player;
-                        addInRoom({ id: socket.id }, io)
+                        usersInfo[email] = player;
+                        addInRoom({ email, sid: socket.id }, io)
                             .then(result => {
                                 if (result) {
-                                    // Emit the room id to user so they can join
+                                    // Emit confirm to user so they can join
                                     socket.join(result.id);
                                     socket.emit("provide-public-room", true);
                                 } else
@@ -556,12 +573,13 @@ module.exports.init = (socket, io) => {
     // Providing public rooms current state
     socket.on("get-init-public-room", (options) => {
         if (socket.user) {
+            const email = socket.user.email;
             try {
-                let roominfo = serializeRoom({ id: socket.id });
+                let roominfo = serializeRoom({ email });
                 if (roominfo.roomid) {
                     socket.emit("provide-init-public-room", removeObjectKey(roominfo, "room"));
                     // Broadcast in room when new player joins
-                    socket.broadcast.to(roominfo.roomid).emit("provide-new-public-player", usersInfo[socket.id]);
+                    socket.broadcast.to(roominfo.roomid).emit("provide-new-public-player", usersInfo[email]);
                     // Call start function
                     if (roominfo.room) {
                         roominfo.room.start(io);
@@ -580,34 +598,38 @@ module.exports.init = (socket, io) => {
     socket.on("send-new-public-chat", (text) => {
         try {
             if (text !== '' && socket.user) {
-                let player = usersInfo[socket.id];
-                if (player && !isPlayerArtist({ id: socket.id })) {
+                const email = socket.user.email;
+                let player = usersInfo[email];
+                if (player && !isPlayerArtist({ email })) {
                     // Along with message, send the score if scored
-                    const score = giveScoreToPlayer({ id: socket.id }, text);
+                    const score = giveScoreToPlayer({ email }, text);
                     if (score) {
                         // Someone guessed
-                        socket.broadcast.to(getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: '', score, guessed: true });
+                        socket.broadcast.to(getUsersRoomId({ email })).emit("provide-new-public-chat", { sender: player, message: '', score, guessed: true });
                         socket.emit("provide-new-public-chat-self", { sender: player, message: text, score, guessed: true });
                     } else {
                         // Not guessed, but have to filter for any hints
-                        const filteredText = filterText({ id: socket.id }, text);
-                        socket.broadcast.to(getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: filteredText, score, guessed: false });
+                        const filteredText = filterText({ email }, text);
+                        socket.broadcast.to(getUsersRoomId({ email })).emit("provide-new-public-chat", { sender: player, message: filteredText, score, guessed: false });
                         socket.emit("provide-new-public-chat-self", { sender: player, message: filteredText, score, guessed: false });
                     }
                 }
             }
         } catch (err) {
-            // console.log(err);
+            console.log(err);
         }
     });
 
     socket.on("get-public-artist-over", () => {
-        let roomid = getUsersRoomId({ id: socket.id });
-        let room = userPublicRooms[roomid];
-        if (room) {
-            room.artOverRequests.add(socket.id);
-            if (room && !room.isGameOver && Math.ceil(room.artOverRequests.size * 100 / room.getSize()) >= 100) {
-                room.artSessionOver(io);
+        if (socket.user) {
+            const email = socket.user.email;
+            let roomid = getUsersRoomId({ email });
+            let room = userPublicRooms[roomid];
+            if (room) {
+                room.artOverRequests.add(socket.id);
+                if (room && !room.isGameOver && Math.ceil(room.artOverRequests.size * 100 / room.getSize()) >= 100) {
+                    room.artSessionOver(io);
+                }
             }
         }
     });

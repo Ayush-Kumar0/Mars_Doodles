@@ -140,7 +140,7 @@ function GuestPublicGame() {
             setRoundOverModalVisible(false);
             setWaitingForNewArtist(false);
             setWaitingForNewRound(false);
-            setTimer(0);
+            setTimer(undefined);
         });
 
 

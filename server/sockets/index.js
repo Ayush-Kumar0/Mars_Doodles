@@ -3,11 +3,12 @@ const User = require('../models/user');
 const Guest = require('../models/guest');
 const GuestPublicRoom = require('./GuestPublicRoom');
 const UserPublicRoom = require('./UserPublicRoom');
+const { removeAlreadyPlaying } = require('./utils');
 
 
 
-let guestsInfo = require('./data').guestsInfo; // { player_sid: {id, name, type, picture} }
-let usersInfo = require('./data').usersInfo; // { email: {id, name, type, picture} }
+const guestsInfo = require('./data').guestsInfo; // { player_sid: {id, name, type, picture} }
+const usersInfo = require('./data').usersInfo; // { email: {id, name, type, picture} }
 
 // Get cookies from socket request from user
 async function getCookies(socket, next) {
@@ -66,6 +67,7 @@ module.exports = (io) => {
                     GuestPublicRoom.removePlayer({ id: socket.id }, io);
                 }
                 delete guestsInfo[socket.id];
+                removeAlreadyPlaying(socket);
             });
         }
 
@@ -77,12 +79,14 @@ module.exports = (io) => {
             socket.on("disconnect", (reason) => {
                 // Player remover from Public room
                 if (socket.user) {
+                    const email = socket.user.email;
                     // Inform others in room that guest has left.
-                    socket.broadcast.to(UserPublicRoom.getUsersRoomId({ id: socket.id })).emit("provide-public-player-left", usersInfo[socket.id]);
-                    socket.leave(UserPublicRoom.getUsersRoomId({ id: socket.id }));
-                    UserPublicRoom.removePlayer({ id: socket.id }, io);
+                    socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email })).emit("provide-public-player-left", usersInfo[email]);
+                    socket.leave(UserPublicRoom.getUsersRoomId({ email }));
+                    UserPublicRoom.removePlayer({ email }, io);
                 }
-                delete usersInfo[socket.id];
+                delete usersInfo[email];
+                removeAlreadyPlaying(socket);
             });
         }
     });

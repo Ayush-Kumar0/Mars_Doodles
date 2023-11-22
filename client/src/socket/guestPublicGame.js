@@ -19,11 +19,13 @@ class GuestPublicGame {
 
     eventListeners() {
         // Event listeners
-        this.socket.on("provide-public-room", (isAvailable) => {
+        this.socket.on("provide-public-room", (isAvailable, message) => {
             console.log(isAvailable);
             if (isAvailable && this.socket)
                 this.nav(`public/`);
-            else {
+            else if (!isAvailable && message) {
+                this.toast.error(message);
+            } else {
                 this.toast.error("You are not authorized");
             }
         });
