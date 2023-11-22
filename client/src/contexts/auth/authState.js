@@ -40,6 +40,10 @@ function AuthState(props) {
         userExists(nav, setLoading, setPlayer_);
     }, []);
 
+    useEffect(() => {
+        console.log(player);
+    }, [player]);
+
     const setPlayer = (player) => {
         setPlayer_(player);
     }

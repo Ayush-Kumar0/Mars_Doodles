@@ -48,10 +48,14 @@ function UserPublicGame() {
             if (!result) {
                 return console.log('Server error');
             }
+            localStorage.setItem('roomid', result.roomid);
             setPublicRoom(result);
             setPlayers(result.players);
             setArtist(result.artist);
-            setAmIArtist(socket.id === result.artist ? true : false);
+            if (userGuest && userGuest.user && userGuest._id && result.artist && result.artist.id === userGuest.user._id)
+                setAmIArtist(true);
+            else
+                setAmIArtist(false);
             setWord(result.hiddenWord);
             setHasStarted(result.hasStarted);
             setRound(result.roundsCompleted);
@@ -182,6 +186,8 @@ function UserPublicGame() {
     }, [socket]);
 
 
+
+
     // Score changer
     const handleScoreStorage = (player, score) => {
         console.log(player, score);
@@ -199,7 +205,7 @@ function UserPublicGame() {
             e.preventDefault();
             if (socket)
                 socket.disconnect();
-            nav('/guest');
+            nav('/user');
         } catch (err) {
             console.log(err);
         }

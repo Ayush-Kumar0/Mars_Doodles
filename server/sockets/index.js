@@ -84,8 +84,8 @@ module.exports = (io) => {
                     socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email })).emit("provide-public-player-left", usersInfo[email]);
                     socket.leave(UserPublicRoom.getUsersRoomId({ email }));
                     UserPublicRoom.removePlayer({ email }, io);
+                    delete usersInfo[email];
                 }
-                delete usersInfo[email];
                 removeAlreadyPlaying(socket);
             });
         }

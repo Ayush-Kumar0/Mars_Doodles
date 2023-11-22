@@ -12,7 +12,7 @@ const removeObjectKey = require('./utils').removeObjectKey;
 const startLimit = 2, roomLimit = 31;
 const defaultPlayerTime = 30000, defaultTimeBtwRounds = 5000, defaultTimeBtwArtSessions = 3000;
 const defaultTotalRounds = 2, defaultPercentWordReveal = 1;
-const latencyDelay = 5000;
+const latencyDelay = 2000; // Latency should always be less than time between session
 
 
 

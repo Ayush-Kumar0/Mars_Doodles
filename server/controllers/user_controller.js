@@ -95,6 +95,7 @@ module.exports.create = async function (req, res) {
                             player: {
                                 type: 'user',
                                 user: {
+                                    _id: user._id,
                                     name: user.name,
                                     email: user.email
                                 }
@@ -151,6 +152,7 @@ module.exports.createSession = function (req, res) {
                     player: {
                         type: 'user',
                         user: {
+                            _id: user._id,
                             name: user.name,
                             email: user.email
                         }
@@ -219,6 +221,7 @@ module.exports.googleSignin = async function (req, res) {
                     player: {
                         type: 'user',
                         user: {
+                            _id: user._id,
                             name: user.name,
                             email: user.email,
                             picture: user.picture
@@ -261,6 +264,7 @@ module.exports.googleSignin = async function (req, res) {
                             player: {
                                 type: 'user',
                                 user: {
+                                    _id: user._id,
                                     name: user.name,
                                     email: user.email,
                                     picture: user.picture

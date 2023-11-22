@@ -28,6 +28,7 @@ module.exports.create = function (req, res) {
                 player: {
                     type: 'guest',
                     guest: {
+                        _id: guest._id,
                         name: guest.name
                     }
                 }

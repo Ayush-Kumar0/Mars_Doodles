@@ -12,7 +12,7 @@ const removeObjectKey = require('./utils').removeObjectKey;
 const startLimit = 2, roomLimit = 31;
 const defaultPlayerTime = 30000, defaultTimeBtwRounds = 5000, defaultTimeBtwArtSessions = 3000;
 const defaultTotalRounds = 2, defaultPercentWordReveal = 1;
-const latencyDelay = 5000;
+const latencyDelay = 2000; // Latency should always be less than time between session
 
 
 
@@ -323,42 +323,49 @@ class UserPublicRoom {
 const addInRoom = (player, io) => {
     return new Promise((resolve, reject) => {
         if (player) {
-            // Search for room id using some optimization algorithm
-            let userPublicRoomIds = Object.keys(userPublicRooms);
-            const findVacantRoomId = new Promise((resolve, reject) => {
-                function find(index) {
-                    if (index >= userPublicRoomIds.length) {
-                        resolve(null);
-                    } else {
-                        let id = userPublicRoomIds[index];
-                        let room = userPublicRooms[id];
-                        if (id && room && room.shouldJoin()) {
-                            // Room found, resolve the promise with the result=
-                            resolve(id);
+            if (player.roomid && userPublicRooms.hasOwnProperty(player.roomid) && userPublicRooms[player.roomid].isGameOver === false) {
+                let room = userPublicRooms[player.roomid];
+                let res = room.addPlayer(player);
+                usersRoom[player.email] = id;
+                resolve(res);
+            } else {
+                // Search for room id using some optimization algorithm
+                let userPublicRoomIds = Object.keys(userPublicRooms);
+                const findVacantRoomId = new Promise((resolve, reject) => {
+                    function find(index) {
+                        if (index >= userPublicRoomIds.length) {
+                            resolve(null);
                         } else {
-                            find(index + 1);
+                            let id = userPublicRoomIds[index];
+                            let room = userPublicRooms[id];
+                            if (id && room && room.shouldJoin()) {
+                                // Room found, resolve the promise with the result=
+                                resolve(id);
+                            } else {
+                                find(index + 1);
+                            }
                         }
                     }
-                }
-                find(0);
-            });
-            findVacantRoomId.then(id => {
-                let room = userPublicRooms[id];
-                if (room) {
-                    // console.log('Added in old room', id);
-                    // Add player in existing room
-                    let res = room.addPlayer(player);
-                    // Update rooms
-                    usersRoom[player.email] = id;
-                    return resolve(res);
-                } else {
-                    // Add player in new room
-                    return resolve(addInNewRoom(player, io));
-                }
-            }).catch(err => {
-                // console.log(err);
-                reject(err);
-            });
+                    find(0);
+                });
+                findVacantRoomId.then(id => {
+                    let room = userPublicRooms[id];
+                    if (room) {
+                        // console.log('Added in old room', id);
+                        // Add player in existing room
+                        let res = room.addPlayer(player);
+                        // Update rooms
+                        usersRoom[player.email] = id;
+                        return resolve(res);
+                    } else {
+                        // Add player in new room
+                        return resolve(addInNewRoom(player, io));
+                    }
+                }).catch(err => {
+                    // console.log(err);
+                    reject(err);
+                });
+            }
         } else {
             // console.log('Player is null');
             return resolve(null);
@@ -513,7 +520,7 @@ module.exports.getUsersRoomId = getUsersRoomId;
 
 module.exports.init = (socket, io) => {
     // Public room provider
-    socket.on("get-public-room", (options) => {
+    socket.on("get-public-room", (options, roomid) => {
         // Iff socket is authorized
         if (socket.user) {
             console.log(usersInfo);
@@ -543,7 +550,7 @@ module.exports.init = (socket, io) => {
                 getUsersInfo(socket)
                     .then(player => {
                         usersInfo[email] = player;
-                        addInRoom({ email, sid: socket.id }, io)
+                        addInRoom({ email, sid: socket.id, roomid }, io)
                             .then(result => {
                                 if (result) {
                                     // Emit confirm to user so they can join
