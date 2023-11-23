@@ -19,6 +19,7 @@ function GuestPublicGame() {
     const [word, setWord] = useState('');
     const [players, setPlayers] = useState([]); // Current scores are also present in it
     // Accessible to the artist only
+    const [wasIArtist, setWasIArtist] = useState(false);
     const [amIArtist, setAmIArtist] = useState(false);
     const [fullWord, setFullWord] = useState(null);
     // Waiting states
@@ -105,6 +106,7 @@ function GuestPublicGame() {
         });
 
         socket.on("provide-public-artist-over", (completeWord, artMaker) => {
+            setWasIArtist(false);
             setArtOverModalVisible(true);
             setArtOverMsg({
                 word: completeWord,
@@ -116,6 +118,7 @@ function GuestPublicGame() {
             setTimer(0);
         });
         socket.on("provide-public-your-turn-over", () => {
+            setWasIArtist(true);
             setAmIArtist(false);
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
@@ -213,7 +216,7 @@ function GuestPublicGame() {
                 <Canva></Canva>
                 <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist}></Chatbox>
             </GameContainer>
-            {artOverModalVisible && <ArtSessionOver close={() => setArtOverModalVisible(false)} artOverMsg={artOverMsg} amIArtist={amIArtist} />}
+            {artOverModalVisible && <ArtSessionOver close={() => setArtOverModalVisible(false)} artOverMsg={artOverMsg} wasIArtist={wasIArtist} />}
             {roundOverModalVisible && <RoundOver close={() => setRoundOverModalVisible(false)} currentRoundScore={currentRoundScore} />}
             {gameOverModalVisible && <GameOver close={() => setGameOverModalVisible(false)} />}
         </>

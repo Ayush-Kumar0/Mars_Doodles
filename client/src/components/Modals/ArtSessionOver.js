@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Modal2 from '../Modals/Modal2';
 import styled from 'styled-components';
 
-function ArtSessionOver({ close, artOverMsg, amIArtist }) {
+function ArtSessionOver({ close, artOverMsg, wasIArtist }) {
+    useEffect(() => {
+        console.log(wasIArtist);
+    }, [wasIArtist])
+
     return (
         <Modal2 close={close}>
             <Paragraph>
-                {amIArtist ?
+                {wasIArtist ?
                     <span>Waiting for next Drawing...</span>
                     : artOverMsg && artOverMsg.word && artOverMsg.name &&
-                    <span>The word was <span className='fullWord'>{artOverMsg.word} by {artOverMsg.name}</span><br />Waiting for next Drawing...</span>
+                    <span>The word was <span className='fullWord'>{artOverMsg.word}</span> by <span className='fullWord'>{artOverMsg.name}</span><br /><br />Waiting for next Drawing...</span>
                 }
             </Paragraph>
         </Modal2>

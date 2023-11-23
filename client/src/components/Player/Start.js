@@ -7,7 +7,8 @@ function Start(props) {
         changeNameHandler,
         picture,
         handleOptionsButtonClick,
-        playButtonPressed
+        playButtonPressed,
+        createButtonPressed
     } = props;
 
     const [name, setName] = useState(player_name);
@@ -28,6 +29,10 @@ function Start(props) {
             changeNameHandler(name, setName);
     }
 
+    const joinButtonPressed = (e) => {
+
+    }
+
     return (
         <Startcontainer>
             <div className='profile-photo'>
@@ -44,8 +49,8 @@ function Start(props) {
             </div>
             {props.isUser &&
                 <div className='buttons-div'>
-                    <Button>Create</Button>
-                    <Button>Join</Button>
+                    <Button onClick={createButtonPressed}>Create</Button>
+                    <Button onClick={joinButtonPressed}>Join</Button>
                 </div>
             }
         </Startcontainer>

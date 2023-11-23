@@ -8,6 +8,7 @@ import Signin from '../pages/Signin';
 import Signup from '../pages/Signup';
 import GuestPublicGame from '../pages/GuestPublicGame';
 import UserPublicGame from '../pages/UserPublicGame';
+import UserPrivateGame from '../pages/UserPrivateGame';
 import RoomState from '../contexts/room/roomState';
 
 function AppRoutes() {
@@ -23,6 +24,7 @@ function AppRoutes() {
                 <>
                     <Route path='/user' element={<RoomState><User /></RoomState>} />
                     <Route path='/user/public/' element={<RoomState><UserPublicGame /></RoomState>} />
+                    <Route path='/user/private/' element={<RoomState><UserPrivateGame /></RoomState>} />
                 </>}
             {player.type === 'guest' &&
                 <>

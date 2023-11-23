@@ -10,11 +10,11 @@ import ArtSessionOver from '../components/Modals/ArtSessionOver';
 import RoundOver from '../components/Modals/RoundOver';
 import GameOver from '../components/Modals/GameOver';
 
-function UserPublicGame() {
+function UserPrivateGame() {
     const nav = useNavigate();
     const [userGuest, setUserGuest] = useContext(authContext);
     const { socket, setSocket } = useContext(roomContext);
-    const [publicRoom, setPublicRoom] = useState(null);
+    const [privateRoom, setPrivateRoom] = useState(null);
     const [artist, setArtist] = useState(null);
     const [word, setWord] = useState('');
     const [players, setPlayers] = useState([]); // Current scores are also present in it
@@ -42,15 +42,14 @@ function UserPublicGame() {
 
     // Room joining events
     useEffect(() => {
-        socket.emit("get-init-public-room");
+        socket.emit("get-init-private-room");
 
-        socket.on("provide-init-public-room", (result) => {
+        socket.on("provide-init-private-room", (result) => {
             console.log(result);
             if (!result) {
                 return console.log('Server error');
             }
-            localStorage.setItem('roomid', result.roomid);
-            setPublicRoom(result);
+            setPrivateRoom(result);
             setPlayers(result.players);
             setArtist(result.artist);
             if (userGuest && userGuest.user && userGuest._id && result.artist && result.artist.id === userGuest.user._id)
@@ -68,14 +67,14 @@ function UserPublicGame() {
         });
 
         return () => {
-            socket.off("provide-init-public-room");
+            socket.off("provide-init-private-room");
         }
     }, [socket]);
 
 
     // Game events
     useEffect(() => {
-        socket.on("provide-public-artist-info", (artMaker, word, round) => {
+        socket.on("provide-private-artist-info", (artMaker, word, round) => {
             setAmIArtist(false);
             setWord(word);
             setFullWord(null);
@@ -83,17 +82,17 @@ function UserPublicGame() {
             setHasStarted(true);
             setWaitingForNewArtist(false);
             setWaitingForNewRound(false);
-            setTimer(publicRoom.playerTime);
+            setTimer(privateRoom.playerTime);
             setRound(round);
             setArtOverModalVisible(false);
             setTimeout(() => {
-                socket.emit("get-public-artist-over");
-            }, publicRoom.playerTime);
+                socket.emit("get-private-artist-over");
+            }, privateRoom.playerTime);
         });
-        socket.on("provide-public-letter-hint", (revealedWord) => {
+        socket.on("provide-private-letter-hint", (revealedWord) => {
             setWord(revealedWord);
         });
-        socket.on("provide-public-word-to-artist", (artMaker, fullWord, round) => {
+        socket.on("provide-private-word-to-artist", (artMaker, fullWord, round) => {
             setAmIArtist(true);
             setFullWord(fullWord);
             setWord('');
@@ -101,15 +100,15 @@ function UserPublicGame() {
             setHasStarted(true);
             setWaitingForNewArtist(false);
             setWaitingForNewRound(false);
-            setTimer(publicRoom.playerTime);
+            setTimer(privateRoom.playerTime);
             setRound(round);
             setArtOverModalVisible(false);
             setTimeout(() => {
-                socket.emit("get-public-artist-over");
-            }, publicRoom.playerTime);
+                socket.emit("get-private-artist-over");
+            }, privateRoom.playerTime);
         });
 
-        socket.on("provide-public-artist-over", (completeWord, artMaker) => {
+        socket.on("provide-private-artist-over", (completeWord, artMaker) => {
             setArtOverModalVisible(true);
             setWasIArtist(false);
             setArtOverMsg({
@@ -118,30 +117,30 @@ function UserPublicGame() {
             });
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
-            // setTimer(publicRoom.timeBtwArtSessions);
+            // setTimer(privateRoom.timeBtwArtSessions);
             setTimer(0);
         });
-        socket.on("provide-public-your-turn-over", () => {
+        socket.on("provide-private-your-turn-over", () => {
             setWasIArtist(true);
             setAmIArtist(false);
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
             setArtOverModalVisible(true);
-            // setTimer(publicRoom.timeBtwArtSessions);
+            // setTimer(privateRoom.timeBtwArtSessions);
             setTimer(0);
         });
 
-        socket.on("provide-public-round-over", (result) => {
+        socket.on("provide-private-round-over", (result) => {
             setArtOverModalVisible(false);
             setRoundOverModalVisible(true);
             setCurrentRoundScore([]);
             setWaitingForNewArtist(false);
             setWaitingForNewRound(true);
-            // setTimer(publicRoom.timeBtwRounds);
+            // setTimer(privateRoom.timeBtwRounds);
             setTimer(0);
         });
 
-        socket.on("provide-public-game-ended", (result) => {
+        socket.on("provide-private-game-ended", (result) => {
             setGameOverModalVisible(true);
             setIsGameOver(true);
             setArtOverModalVisible(false);
@@ -155,20 +154,20 @@ function UserPublicGame() {
 
         // Remove socket events here
         return () => {
-            socket.off("provide-public-artist-info");
-            socket.off("provide-public-letter-hint");
-            socket.off("provide-public-word-to-artist");
-            socket.off("provide-public-artist-over");
-            socket.off("provid-public-round-over");
-            socket.off("provide-public-game-ended");
+            socket.off("provide-private-artist-info");
+            socket.off("provide-private-letter-hint");
+            socket.off("provide-private-word-to-artist");
+            socket.off("provide-private-artist-over");
+            socket.off("provid-private-round-over");
+            socket.off("provide-private-game-ended");
         }
-    }, [socket, publicRoom]);
+    }, [socket, privateRoom]);
 
 
     // Player add, leave events
     useEffect(() => {
         // When new player joins room
-        socket.on("provide-new-public-player", (result) => {
+        socket.on("provide-new-private-player", (result) => {
             // console.log(initplayers, result);
             setPlayers(prevPlayers => {
                 let index = prevPlayers.findIndex((plr) => plr.id === result.id);
@@ -179,13 +178,13 @@ function UserPublicGame() {
             });
         });
         // When a player leaves the room
-        socket.on("provide-public-player-left", (result) => {
+        socket.on("provide-private-player-left", (result) => {
             setPlayers(prevPlayers => prevPlayers.filter(pl => pl.id !== result.id));
         });
 
         return () => {
-            socket.off("provide-new-public-player");
-            socket.off("provide-public-player-left");
+            socket.off("provide-new-private-player");
+            socket.off("provide-private-player-left");
         }
     }, [socket]);
 
@@ -218,11 +217,11 @@ function UserPublicGame() {
     return (
         <>
             <GameContainer>
-                <Topbar><Leave onClick={exitRoom}><img src='/assets/exit_room.svg' /></Leave><span>{fullWord ? fullWord : word}</span><Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={publicRoom?.totalRounds} /></Topbar>
+                <Topbar><Leave onClick={exitRoom}><img src='/assets/exit_room.svg' /></Leave><span>{fullWord ? fullWord : word}</span><Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={privateRoom?.totalRounds} /></Topbar>
                 <GamePlayers artistPlayer={artist} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest}></GamePlayers>
                 <Canva
                     hasStarted={hasStarted}
-                    isPublic={true}
+                    isPublic={false}
                 ></Canva>
                 <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist}></Chatbox>
             </GameContainer>
@@ -350,4 +349,4 @@ const Leave = styled.button`
     cursor: pointer;
 `;
 
-export default UserPublicGame;
+export default UserPrivateGame;

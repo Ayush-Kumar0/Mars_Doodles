@@ -10,6 +10,7 @@ import Options from '../components/Modals/Options';
 import { useNavigate } from 'react-router-dom';
 import roomContext from '../contexts/room/roomContext';
 import UserPublicGame from '../socket/userPublicGame';
+import UserPrivateGame from '../socket/userPrivateGame';
 
 function User() {
     const nav = useNavigate();
@@ -63,6 +64,12 @@ function User() {
         userPublicGame.getRoom();
     }
 
+    // Create a private game and join it
+    const createButtonPressed = (e) => {
+        const userPrivateGame = new UserPrivateGame(nav, toast, setSocket);
+        userPrivateGame.createAndJoinRoom();
+    }
+
 
 
 
@@ -77,6 +84,7 @@ function User() {
                     picture={(player && player.user && player.user.picture) ? player.user.picture : '/assets/no_profile_picture.svg'}
                     handleOptionsButtonClick={handleOptionsOpen}
                     playButtonPressed={playButtonPressed}
+                    createButtonPressed={createButtonPressed}
                     isUser={true}
                 />
             </Usercontainer>

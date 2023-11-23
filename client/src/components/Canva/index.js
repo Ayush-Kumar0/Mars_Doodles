@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components';
 import { Stage, Layer, Line } from 'react-konva';
+import WaitingToStart from '../Loader/WaitingToStart';
+import Lobby from '../Loader/Lobby';
 
 
-function Canva() {
+function Canva({ hasStarted, isPublic }) {
     // For dimensions of canvas
     const containerRef = useRef();
     const toolboxRef = useRef();
@@ -102,6 +104,8 @@ function Canva() {
                 {/* Tool selector for drawing */}
                 <Toolbox ref={toolboxRef}>
                 </Toolbox>
+
+                {!hasStarted && ((isPublic && <WaitingToStart />) || (!isPublic && <Lobby />))}
             </CanvaContainer>
         </>
     )

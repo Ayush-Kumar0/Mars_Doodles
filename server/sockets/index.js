@@ -3,6 +3,7 @@ const User = require('../models/user');
 const Guest = require('../models/guest');
 const GuestPublicRoom = require('./GuestPublicRoom');
 const UserPublicRoom = require('./UserPublicRoom');
+const UserPrivateRoom = require('./UserPrivateRoom');
 const { removeAlreadyPlaying } = require('./utils');
 
 
@@ -75,15 +76,23 @@ module.exports = (io) => {
 
         // For Users public and private rooms
         if (socket && socket.user) {
+            UserPrivateRoom.init(socket, io);
             UserPublicRoom.init(socket, io);
+
             socket.on("disconnect", (reason) => {
                 // Player remover from Public room
                 if (socket.user) {
                     const email = socket.user.email;
                     // Inform others in room that guest has left.
-                    socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email })).emit("provide-public-player-left", usersInfo[email]);
-                    socket.leave(UserPublicRoom.getUsersRoomId({ email }));
-                    UserPublicRoom.removePlayer({ email }, io);
+                    if (UserPublicRoom.getUsersRoomId({ email })) {
+                        socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email })).emit("provide-public-player-left", usersInfo[email]);
+                        socket.leave(UserPublicRoom.getUsersRoomId({ email }));
+                        UserPublicRoom.removePlayer({ email }, io);
+                    } else if (UserPrivateRoom.getUsersRoomId({ email })) {
+                        socket.broadcast.to(UserPrivateRoom.getUsersRoomId({ email })).emit("provide-private-player-left", usersInfo[email]);
+                        socket.leave(UserPrivateRoom.getUsersRoomId({ email }));
+                        UserPrivateRoom.removePlayer({ email }, io);
+                    }
                     delete usersInfo[email];
                 }
                 removeAlreadyPlaying(socket);
