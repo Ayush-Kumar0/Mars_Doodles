@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent }) {
+function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPrivate, isChatEnabledParent }) {
     const [text, setText] = useState('');
     const [chatMessages, setChatMessages] = useState([]);
     const [userGuestId, setUserGuestId] = useState(null);
     const [amIArtist, setAmIArtist] = useState(amIArtistParent);
+    const [isChatEnabled, setIsChatEnabled] = useState(isChatEnabledParent);
 
 
     useEffect(() => {
@@ -16,30 +17,58 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent }) {
     }, [socket, userGuest]);
 
     useEffect(() => {
-        socket.on("provide-new-public-chat", (chat) => {
-            handleScoreStorage(chat.sender, chat.score);
-            if (chat.guessed)
-                setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: `Guessed it.`, className: 'otherguessed' }]);
-            else
-                setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
-        });
-        socket.on("provide-new-public-chat-self", (chat) => {
-            handleScoreStorage(chat.sender, chat.score);
-            if (chat.guessed)
-                setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You gessed it : " + chat.message, className: 'youguessed' }]);
-            else
-                setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
-        });
+        if (isPrivate) {
+            socket.on("provide-new-private-chat", (chat) => {
+                handleScoreStorage(chat.sender, chat.score);
+                if (chat.guessed)
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: `Guessed it.`, className: 'otherguessed' }]);
+                else
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
+            });
+            socket.on("provide-new-private-chat-self", (chat) => {
+                handleScoreStorage(chat.sender, chat.score);
+                if (chat.guessed)
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You gessed it : " + chat.message, className: 'youguessed' }]);
+                else
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
+            });
+        } else {
+            socket.on("provide-new-public-chat", (chat) => {
+                handleScoreStorage(chat.sender, chat.score);
+                if (chat.guessed)
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: `Guessed it.`, className: 'otherguessed' }]);
+                else
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
+            });
+            socket.on("provide-new-public-chat-self", (chat) => {
+                handleScoreStorage(chat.sender, chat.score);
+                if (chat.guessed)
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You gessed it : " + chat.message, className: 'youguessed' }]);
+                else
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
+            });
+        }
 
         return () => {
-            socket.off("provide-new-public-chat");
-            socket.off("provide-new-public-chat-self");
+            if (isPrivate) {
+                socket.off("provide-new-private-chat");
+                socket.off("provide-new-private-chat-self");
+            } else {
+                socket.off("provide-new-public-chat");
+                socket.off("provide-new-public-chat-self");
+            }
         }
-    }, [socket, handleScoreStorage]);
+    }, [socket, handleScoreStorage, isPrivate]);
 
     useEffect(() => {
         setAmIArtist(amIArtistParent);
+        if (amIArtistParent)
+            setText('');
     }, [amIArtistParent]);
+
+    useEffect(() => {
+        setIsChatEnabled(isChatEnabledParent);
+    }, [isChatEnabledParent]);
 
 
 
@@ -49,7 +78,10 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent }) {
         if (e.key === 'Enter') {
             // Send message to server for validation
             if (text !== '') {
-                socket.emit("send-new-public-chat", text);
+                if (isPrivate)
+                    socket.emit("send-new-private-chat", text);
+                else
+                    socket.emit("send-new-public-chat", text);
                 setText('');
             }
         }
@@ -60,7 +92,7 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent }) {
     return (
         <>
             <ChatBoxContainer>
-                <p className='heading'>Chat</p>
+                <p className='heading'>Chat{!isChatEnabled && <img className='chatoff' src='/assets/chat_off.svg' />}</p>
                 <ChatList>
                     <ul>
                         {chatMessages && chatMessages.map(chatmsg => (
@@ -111,6 +143,11 @@ const ChatBoxContainer = styled.div`
         border-top: 2px solid var(--primary);
         padding-left: 5px;
         padding-right: 5px;
+    }
+
+    .chatoff {
+        position: absolute;
+        padding-left: 5px;
     }
 `;
 

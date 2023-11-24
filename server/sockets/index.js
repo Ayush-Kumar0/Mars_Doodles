@@ -83,15 +83,16 @@ module.exports = (io) => {
                 // Player remover from Public room
                 if (socket.user) {
                     const email = socket.user.email;
+                    console.log(email);
                     // Inform others in room that guest has left.
                     if (UserPublicRoom.getUsersRoomId({ email })) {
                         socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email })).emit("provide-public-player-left", usersInfo[email]);
                         socket.leave(UserPublicRoom.getUsersRoomId({ email }));
                         UserPublicRoom.removePlayer({ email }, io);
                     } else if (UserPrivateRoom.getUsersRoomId({ email })) {
+                        console.log(email);
                         socket.broadcast.to(UserPrivateRoom.getUsersRoomId({ email })).emit("provide-private-player-left", usersInfo[email]);
-                        socket.leave(UserPrivateRoom.getUsersRoomId({ email }));
-                        UserPrivateRoom.removePlayer({ email }, io);
+                        UserPrivateRoom.removePlayer({ email, id: socket.id }, io, socket);
                     }
                     delete usersInfo[email];
                 }

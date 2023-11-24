@@ -7,6 +7,7 @@ const isAlreadyPlaying = require('./utils').isAlreadyPlaying;
 
 const usersInfo = require('./data').usersInfo; // { email: {id, name, type, picture} }
 const removeObjectKey = require('./utils').removeObjectKey;
+const generateUniqueString = require('./utils').generateUniqueString;
 
 
 const startLimit = 2, roomLimit = 31;
@@ -25,6 +26,8 @@ const latencyDelay = 2000; // Latency should always be less than time between se
 const userPrivateRooms = {}; // {roomid: new UserPrivateRoom()}
 // User: Room
 const usersRoom = {}; // {email: roomid}
+// Shorted room ids
+const shortRoomid = {}; // {shortid: roomid}
 
 
 
@@ -46,8 +49,12 @@ const usersRoom = {}; // {email: roomid}
 
 class UserPrivateRoom {
     id;
+    shortid;
     roomPlayers; // [email: {hasDrawnThisRound, score, hasGuessed, isPresent}]
+    adminEmail; //admin's email
+    isChatEnabled; // whether chat is enabled or not
     lowerLimit;
+    roomLimit;
     playerTime;
     timeBtwRounds;
     timeBtwArtSessions;
@@ -57,10 +64,11 @@ class UserPrivateRoom {
     percentWordReveal;
     hiddenWord; // Partially revealed word
     roomSize;
-    artistEmail;
+    artistEmail; //Email of artist
     artOverRequests;
 
     hasStarted;
+    hasAdminConfigured;
     isArtSessionOver;
     isRoundOver;
     isGameOver;
@@ -70,7 +78,9 @@ class UserPrivateRoom {
         this.id = roomId;
         this.roomPlayers = new Map(); // [email: {hasDrawnThisRound, score, hasGuessed, isPresent}]
         this.artOverRequests = new Set();
+        this.isChatEnabled = true;
         this.lowerLimit = startLimit;
+        this.roomLimit = roomLimit;
         this.playerTime = defaultPlayerTime;
         this.totalRounds = defaultTotalRounds;
         this.timeBtwRounds = defaultTimeBtwRounds;
@@ -82,6 +92,11 @@ class UserPrivateRoom {
         this.hasStarted = false;
         this.isArtSessionOver = true;
         this.isRoundOver = true;
+        this.hasAdminConfigured = false;
+        let uniqueStr = generateUniqueString(6);
+        while (shortRoomid.hasOwnProperty(uniqueStr)) uniqueStr = generateUniqueString(6);
+        this.shortid = uniqueStr;
+        shortRoomid[this.shortid] = this.id;
     }
 
     // Object info
@@ -120,7 +135,7 @@ class UserPrivateRoom {
             this.roomPlayers.get(player.email).isPresent = false;
             this.roomSize--;
         }
-        if (this.getSize() <= 1 && !this.isGameOver) {
+        if (this.hasAdminConfigured && this.hasStarted && (this.getSize() <= 1 || player.email === this.adminEmail) && !this.isGameOver) {
             this.isGameOver = true;
             this.endGame(io);
         }
@@ -146,15 +161,6 @@ class UserPrivateRoom {
             return null;
         }
         return null;
-    }
-
-    // When should this room be joinalbe
-    shouldJoin() {
-        if (this.getSize() === 0 || this.getSize() >= roomLimit || this.isGameOver || this.roundsCompleted >= this.totalRounds)
-            return false;
-        else {
-            return true;
-        }
     }
 
 
@@ -245,7 +251,6 @@ class UserPrivateRoom {
         if (this.isRoundOver === false) {
             this.isRoundOver = true;
             this.roundsCompleted++;
-            console.log(this.roundsCompleted, this.totalRounds);
             if (this.roundsCompleted < this.totalRounds) {
                 // Provide round results to all players
                 io.to(this.id).emit("provide-private-round-over");
@@ -264,8 +269,7 @@ class UserPrivateRoom {
 
     // Function to start the game and timers
     start(io) {
-        // console.log('Start is called');
-        if (!this.hasStarted && !this.isGameOver && this.roundsCompleted < this.totalRounds && this.getSize() >= this.lowerLimit) {
+        if (!this.hasStarted && this.hasAdminConfigured && !this.isGameOver && this.roundsCompleted < this.totalRounds && this.getSize() >= this.lowerLimit) {
             this.hasStarted = true;
             setTimeout(() => {
                 // Wait just a little before starting
@@ -293,6 +297,7 @@ class UserPrivateRoom {
     endGame(io) {
         clearInterval(this.hint);
         this.isGameOver = true;
+        this.artistEmail = null;
         io.to(this.id).emit("provide-private-game-ended", "The game has ended");
         // Let players chat even after game is over
         // console.log('Game is over');
@@ -319,82 +324,53 @@ class UserPrivateRoom {
 
 
 
-
-const addInRoom = (player, io) => {
-    return new Promise((resolve, reject) => {
-        if (player) {
-            if (false /*player.roomid && userPrivateRooms.hasOwnProperty(player.roomid) && userPrivateRooms[player.roomid].isGameOver === false*/) {
-                // let room = userPrivateRooms[player.roomid];
-                // let res = room.addPlayer(player);
-                // usersRoom[player.email] = id;
-                // resolve(res);
-            } else {
-                // Search for room id using some optimization algorithm
-                let userPrivateRoomIds = Object.keys(userPrivateRooms);
-                const findVacantRoomId = new Promise((resolve, reject) => {
-                    function find(index) {
-                        if (index >= userPrivateRoomIds.length) {
-                            resolve(null);
-                        } else {
-                            let id = userPrivateRoomIds[index];
-                            let room = userPrivateRooms[id];
-                            if (id && room && room.shouldJoin()) {
-                                // Room found, resolve the promise with the result=
-                                resolve(id);
-                            } else {
-                                find(index + 1);
-                            }
-                        }
-                    }
-                    find(0);
-                });
-                findVacantRoomId.then(id => {
-                    let room = userPrivateRooms[id];
-                    if (room) {
-                        // console.log('Added in old room', id);
-                        // Add player in existing room
-                        let res = room.addPlayer(player);
-                        // Update rooms
-                        usersRoom[player.email] = id;
-                        return resolve(res);
-                    } else {
-                        // Add player in new room
-                        return resolve(addInNewRoom(player, io));
-                    }
-                }).catch(err => {
-                    // console.log(err);
-                    reject(err);
-                });
+// When join requests come
+const joinRoom = (player, shortid) => {
+    if (shortRoomid.hasOwnProperty(shortid)) {
+        const room = userPrivateRooms[shortRoomid[shortid]];
+        if (room) {
+            let res = room.addPlayer(player);
+            if (res) {
+                usersRoom[player.email] = res.id;
+                return res;
             }
-        } else {
-            // console.log('Player is null');
-            return resolve(null);
         }
+    }
+    return null;
+}
+
+
+// When create requests come
+const createAndJoinRoom = (player, io) => {
+    return new Promise((resolve, reject) => {
+        if (!player) return null;
+        let id = uuidv4();
+        let userPrivateRoom = new UserPrivateRoom(id, io);
+        let res = userPrivateRoom.addPlayer(player);
+        userPrivateRoom.adminEmail = player.email;
+        usersRoom[player.email] = id;
+        // Update rooms
+        userPrivateRooms[id] = userPrivateRoom;
+        return resolve(res);
     });
 }
 
-
-const addInNewRoom = (player, io) => {
-    if (!player) return null;
-    let id = uuidv4();
-    let userPrivateRoom = new UserPrivateRoom(id, io);
-    let res = userPrivateRoom.addPlayer(player);
-    usersRoom[player.email] = id;
-    // Update rooms
-    userPrivateRooms[id] = userPrivateRoom;
-    return res;
-}
-
-const removePlayer = (player, io) => {
+const removePlayer = (player, io, socket) => {
     if (!player) return null;
     let roomid = usersRoom[player.email];
     let room = userPrivateRooms[roomid];
     if (room) {
+        if (player.email === room.adminEmail) {
+            socket.broadcast.to(room.id).emit("provide-removed-private-game", "Game ended by admin");
+        }
         room.removePlayer(player, io);
+        socket.leave(room.id);
         if (room.getSize() <= 0) {
             // Delete the room also
+            delete shortRoomid[this.shortid];
             delete userPrivateRooms[roomid];
         }
+        delete usersRoom[player.email];
     }
 }
 
@@ -413,40 +389,42 @@ const serializeRoom = (player) => {
         let roomid = usersRoom[player.email];
         let room = userPrivateRooms[roomid];
         let players = room?.getPlayers();
-        console.log(players);
-        if (!players)
-            return {};
         let data = [];
-        for (let key of players.keys()) {
-            if (key && players.get(key)) {
-                let email = key;
-                if (players.get(key).isPresent)
-                    data.push({
-                        id: usersInfo[email].id,
-                        name: usersInfo[email].name,
-                        type: usersInfo[email].type,
-                        picture: usersInfo[email].picture,
-                        score: players.get(key).score,
-                    });
+        if (players)
+            for (let key of players.keys()) {
+                if (key && players.get(key)) {
+                    let email = key;
+                    if (players.get(key).isPresent)
+                        data.push({
+                            id: usersInfo[email].id,
+                            name: usersInfo[email].name,
+                            type: usersInfo[email].type,
+                            picture: usersInfo[email].picture,
+                            score: players.get(key).score,
+                        });
+                }
             }
-        }
         // Return necessary game info for players interactivity
         const obj = {
-            roomid,
             room: room,
+            roomid,
+            shortid: room.shortid,
             players: data,
             playerTime: room.playerTime,
             timeBtwRounds: room.timeBtwRounds,
             timeBtwArtSessions: room.timeBtwArtSessions,
+            admin: usersInfo[room.adminEmail],
             artist: usersInfo[room.artistEmail],
             hiddenWord: room.hiddenWord,
             hasStarted: room.hasStarted,
+            hasAdminConfigured: room.hasAdminConfigured,
             roundsCompleted: room.roundsCompleted,
             totalRounds: room.totalRounds,
+            isChatEnabled: room.isChatEnabled,
         };
         return obj;
     } catch (err) {
-        // console.log(err);
+        console.log(err);
         return {};
     }
 }
@@ -520,7 +498,7 @@ module.exports.getUsersRoomId = getUsersRoomId;
 
 module.exports.init = (socket, io) => {
     // Private room provider
-    socket.on("get-private-room", (options) => {
+    socket.on("get-new-private-room", (options) => {
         // Iff socket is authorized
         if (socket.user) {
             console.log(usersInfo);
@@ -550,7 +528,7 @@ module.exports.init = (socket, io) => {
                 getUsersInfo(socket)
                     .then(player => {
                         usersInfo[email] = player;
-                        addInRoom({ email, sid: socket.id }, io)
+                        createAndJoinRoom({ email, sid: socket.id }, io)
                             .then(result => {
                                 if (result) {
                                     // Emit confirm to user so they can join
@@ -588,7 +566,7 @@ module.exports.init = (socket, io) => {
                     // Broadcast in room when new player joins
                     socket.broadcast.to(roominfo.roomid).emit("provide-new-private-player", usersInfo[email]);
                     // Call start function
-                    if (roominfo.room) {
+                    if (roominfo.room && roominfo.hasAdminConfigured === true) {
                         roominfo.room.start(io);
                     }
                 }
@@ -598,6 +576,96 @@ module.exports.init = (socket, io) => {
             }
         } else {
             socket.emit("provide-init-private-room", null);
+        }
+    });
+
+    socket.on("get-start-private-room", (options) => {
+        try {
+            if (socket.user) {
+                const email = socket.user.email;
+                if (email) {
+                    let room = userPrivateRooms[usersRoom[email]]; // Get room of user
+                    // if request sender is admin
+                    if (room.adminEmail === email) {
+                        if (options.hasOwnProperty('isChatEnabled'))
+                            room.isChatEnabled = options.isChatEnabled;
+                        if (options.hasOwnProperty('totalRounds'))
+                            room.totalRounds = options.totalRounds;
+                        if (options.hasOwnProperty('drawingTime'))
+                            room.playerTime = options.drawingTime * 1000;
+                        if (options.hasOwnProperty('minimumPlayers'))
+                            room.lowerLimit = options.minimumPlayers;
+                        if (options.hasOwnProperty('maximumPlayers'))
+                            room.roomLimit = options.maximumPlayers;
+                        room.hasAdminConfigured = true;
+
+                        // Send the updated room to everyone
+                        try {
+                            let roominfo = serializeRoom({ email });
+                            if (roominfo.roomid) {
+                                io.to(roominfo.roomid).emit("provide-init-private-room", removeObjectKey(roominfo, "room"));
+                                // Call start function
+                                if (roominfo.room) {
+                                    roominfo.room.start(io);
+                                }
+                            }
+                        } catch (err) {
+                            // console.log(err);
+                            socket.emit("provide-init-private-room", null);
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    });
+
+    socket.on('get-join-private-room', (shortid) => {
+        try {
+            if (socket && socket.user) {
+                const email = socket.user.email;
+                if (email) {
+                    if (isAlreadyPlaying(socket)) {
+                        console.log('Simultaneous games not allowed');
+                        socket.emit("provide-private-room", false, "Simultaneous games not allowed");
+                        return;
+                    }
+                    async function getUsersInfo(socket) {
+                        if (socket.user) {
+                            const user = await User.findById(socket.user._id);
+                            return {
+                                id: user.id,
+                                name: user.name,
+                                type: 'user',
+                                picture: user.picture
+                            };
+                        } else
+                            return null;
+                    }
+                    getUsersInfo(socket)
+                        .then(player => {
+                            // Store players info in memory
+                            usersInfo[email] = player;
+                            // Join existing room with room id
+                            let res = joinRoom({ email, sid: socket.id }, shortid);
+                            if (res) {
+                                // Return true to user
+                                socket.join(res.id);
+                                res.start(io);
+                                socket.emit("provide-private-room", true);
+                            } else {
+                                // Message user that room doesn't exist
+                                socket.emit("provide-private-room", false, "Room doesn't exist");
+                            }
+                        }).catch(err => {
+                            console.log('Could not get players info', err);
+                            socket.emit("provide-private-room", false);
+                        });
+                }
+            }
+        } catch (err) {
+            console.log(err);
         }
     });
 
@@ -617,7 +685,9 @@ module.exports.init = (socket, io) => {
                     } else {
                         // Not guessed, but have to filter for any hints
                         const filteredText = filterText({ email }, text);
-                        socket.broadcast.to(getUsersRoomId({ email })).emit("provide-new-private-chat", { sender: player, message: filteredText, score, guessed: false });
+                        const room = userPrivateRooms[usersRoom[email]];
+                        if (room && room.isChatEnabled)
+                            socket.broadcast.to(getUsersRoomId({ email })).emit("provide-new-private-chat", { sender: player, message: filteredText, score, guessed: false });
                         socket.emit("provide-new-private-chat-self", { sender: player, message: filteredText, score, guessed: false });
                     }
                 }

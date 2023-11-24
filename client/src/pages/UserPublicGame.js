@@ -224,7 +224,7 @@ function UserPublicGame() {
                     hasStarted={hasStarted}
                     isPublic={true}
                 ></Canva>
-                <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist}></Chatbox>
+                <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist} isChatEnabledParent={true}></Chatbox>
             </GameContainer>
             {artOverModalVisible && <ArtSessionOver close={() => setArtOverModalVisible(false)} artOverMsg={artOverMsg} wasIArtist={wasIArtist} />}
             {roundOverModalVisible && <RoundOver close={() => setRoundOverModalVisible(false)} currentRoundScore={currentRoundScore} />}

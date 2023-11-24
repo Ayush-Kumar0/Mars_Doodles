@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import roomContext from '../contexts/room/roomContext';
 import UserPublicGame from '../socket/userPublicGame';
 import UserPrivateGame from '../socket/userPrivateGame';
+import Join from '../components/Modals/Join';
 
 function User() {
     const nav = useNavigate();
@@ -18,6 +19,7 @@ function User() {
     const { socket, setSocket } = useContext(roomContext);
     const [loading, setLoading] = useState(true);
     const [optionsVisible, setOptionsVisible] = useState(false);
+    const [joinVisible, setJoinVisible] = useState(false);
 
     useEffect(() => {
         setLoading(false);
@@ -55,7 +57,7 @@ function User() {
     }
 
     function handleOptionsOpen(e) {
-        setOptionsVisible(!optionsVisible);
+        setOptionsVisible(optionsVisible => !optionsVisible);
     }
 
     // START the public game on 'PLAY'
@@ -70,7 +72,21 @@ function User() {
         userPrivateGame.createAndJoinRoom();
     }
 
+    const handleJoinOpen = (e) => {
+        setJoinVisible(joinOpen => !joinOpen);
+    }
 
+    const joinButtonPressed = (e, roomidRef) => {
+        e.preventDefault();
+        if (roomidRef && roomidRef.current && roomidRef.current.value) {
+            const roomid = roomidRef.current.value;
+            console.log(roomid);
+            const userPrivateGame = new UserPrivateGame(nav, toast, setSocket);
+            userPrivateGame.joinRoom(roomid);
+        } else {
+            toast.warning('Enter room id first');
+        }
+    }
 
 
 
@@ -85,12 +101,16 @@ function User() {
                     handleOptionsButtonClick={handleOptionsOpen}
                     playButtonPressed={playButtonPressed}
                     createButtonPressed={createButtonPressed}
+                    joinButtonPressed={handleJoinOpen}
                     isUser={true}
                 />
             </Usercontainer>
             {loading === true && <LoadingModal visible='visible' />}
             {optionsVisible && <Modal1 isOpen={optionsVisible} setOpen={handleOptionsOpen}>
                 <Options />
+            </Modal1>}
+            {joinVisible && <Modal1 isOpen={joinVisible} setOpen={handleJoinOpen}>
+                <Join joinButtonPressed={joinButtonPressed} />
             </Modal1>}
         </>
     );

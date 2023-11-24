@@ -38,7 +38,12 @@ class UserPrivateGame {
 
     // Get into available room or create new one
     createAndJoinRoom() {
-        this.socket.emit("get-private-room", {});
+        this.socket.emit("get-new-private-room", {});
+    }
+
+    // Joining an existing room
+    joinRoom(shortid) {
+        this.socket.emit('get-join-private-room', shortid);
     }
 }
 

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import GamePlayers from '../components/GamePlayers/GamePlayers';
@@ -9,6 +9,7 @@ import authContext from '../contexts/auth/authContext';
 import ArtSessionOver from '../components/Modals/ArtSessionOver';
 import RoundOver from '../components/Modals/RoundOver';
 import GameOver from '../components/Modals/GameOver';
+import { toast } from 'react-toastify';
 
 function UserPrivateGame() {
     const nav = useNavigate();
@@ -18,18 +19,22 @@ function UserPrivateGame() {
     const [artist, setArtist] = useState(null);
     const [word, setWord] = useState('');
     const [players, setPlayers] = useState([]); // Current scores are also present in it
+    // Admin
+    const [admin, setAdmin] = useState(null);
     // Accessible to the artist only
     const [wasIArtist, setWasIArtist] = useState(false);
     const [amIArtist, setAmIArtist] = useState(false);
     const [fullWord, setFullWord] = useState(null);
     // Waiting states
     const [hasStarted, setHasStarted] = useState(false);
+    const [hasAdminConfigured, setHasAdminConfigured] = useState(false);
     const [waitingForNewArtist, setWaitingForNewArtist] = useState(false);
     const [waitingForNewRound, setWaitingForNewRound] = useState(false);
     const [isGameOver, setIsGameOver] = useState(false);
     // Timer
     const [timer, setTimer] = useState(null);
     const [round, setRound] = useState(0);
+    const getOutOfRoomTimeout = useRef(null);
     // Modals
     const [artOverModalVisible, setArtOverModalVisible] = useState(false);
     const [artOverMsg, setArtOverMsg] = useState('');
@@ -49,8 +54,10 @@ function UserPrivateGame() {
             if (!result) {
                 return console.log('Server error');
             }
+            console.log(result);
             setPrivateRoom(result);
             setPlayers(result.players);
+            setAdmin(result.admin);
             setArtist(result.artist);
             if (userGuest && userGuest.user && userGuest._id && result.artist && result.artist.id === userGuest.user._id)
                 setAmIArtist(true);
@@ -58,6 +65,7 @@ function UserPrivateGame() {
                 setAmIArtist(false);
             setWord(result.hiddenWord);
             setHasStarted(result.hasStarted);
+            setHasAdminConfigured(result.hasAdminConfigured);
             setRound(result.roundsCompleted);
             let scoreObj = {};
             for (let plr of result.players) {
@@ -141,13 +149,32 @@ function UserPrivateGame() {
         });
 
         socket.on("provide-private-game-ended", (result) => {
+            setTimer(undefined);
+            setWord('');
+            setFullWord('');
             setGameOverModalVisible(true);
             setIsGameOver(true);
             setArtOverModalVisible(false);
             setRoundOverModalVisible(false);
             setWaitingForNewArtist(false);
             setWaitingForNewRound(false);
-            setTimer(0);
+            setAmIArtist(false);
+            // Get out of the room yourself after 10 mins
+            getOutOfRoomTimeout.current = setTimeout(() => {
+                if (socket) {
+                    toast.info('Room time expired');
+                    socket.disconnect();
+                    nav('/user');
+                }
+            }, 10000);
+        });
+
+        socket.on("provide-removed-private-game", (message) => {
+            console.log(message);
+            if (!isGameOver)
+                toast.info(message);
+            socket.disconnect();
+            nav('/user');
         });
 
 
@@ -158,8 +185,11 @@ function UserPrivateGame() {
             socket.off("provide-private-letter-hint");
             socket.off("provide-private-word-to-artist");
             socket.off("provide-private-artist-over");
-            socket.off("provid-private-round-over");
+            socket.off("provide-private-your-turn-over");
+            socket.off("provide-private-round-over");
             socket.off("provide-private-game-ended");
+            socket.off("provide-removed-private-game");
+            clearTimeout(getOutOfRoomTimeout?.current);
         }
     }, [socket, privateRoom]);
 
@@ -214,16 +244,29 @@ function UserPrivateGame() {
         }
     }
 
+    // Function to copy room id to clipboard on button click
+    const copyToClipboard = (e) => {
+        navigator.clipboard.writeText(privateRoom?.shortid);
+    }
+
     return (
         <>
             <GameContainer>
-                <Topbar><Leave onClick={exitRoom}><img src='/assets/exit_room.svg' /></Leave><span>{fullWord ? fullWord : word}</span><Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={privateRoom?.totalRounds} /></Topbar>
-                <GamePlayers artistPlayer={artist} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest}></GamePlayers>
+                <Topbar>
+                    <Leave onClick={exitRoom}><img className='leavebuttonimg' src='/assets/exit_room.svg' /></Leave>
+                    <ShareId>{privateRoom?.shortid}{privateRoom?.shortid && <img className='clipboard' src='/assets/copy_to_clipboard.svg' onClick={copyToClipboard} />}</ShareId>
+                    <span className='givenword'>{fullWord ? fullWord : word}</span>
+                    {isGameOver ? <span className='timer'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={privateRoom?.totalRounds} />}
+                </Topbar>
+                <GamePlayers artistPlayer={artist} adminPlayer={admin} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest}></GamePlayers>
                 <Canva
                     hasStarted={hasStarted}
+                    hasAdminConfigured={hasAdminConfigured}
                     isPublic={false}
+                    admin={admin}
+                    userGuest={userGuest}
                 ></Canva>
-                <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist}></Chatbox>
+                <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist} isPrivate={true} isChatEnabledParent={privateRoom?.isChatEnabled}></Chatbox>
             </GameContainer>
             {artOverModalVisible && <ArtSessionOver close={() => setArtOverModalVisible(false)} artOverMsg={artOverMsg} wasIArtist={wasIArtist} />}
             {roundOverModalVisible && <RoundOver close={() => setRoundOverModalVisible(false)} currentRoundScore={currentRoundScore} />}
@@ -271,7 +314,7 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
 
     const getTime = (time) => {
         time = Math.floor(time);
-        if (time && Number.isInteger(time)) {
+        if (time && Number.isInteger(time) && !Number.isNaN(timer)) {
             let min = Math.floor(time / 1000 / 60);
             let sec = Math.floor(time / 1000) - min * 60;
             return min + ':' + (sec < 10 ? '0' : '') + sec;
@@ -322,12 +365,16 @@ const Topbar = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    word-spacing: 5px;
+
+    .givenword {
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        word-spacing: 5px;
+    }
 
     .timer {
+        color: white;
         position: absolute;
         right: 0px;
         margin-right: 10px;
@@ -347,6 +394,34 @@ const Leave = styled.button`
         stroke: white;
     }
     cursor: pointer;
+`;
+
+const ShareId = styled.span`
+    position: absolute;
+    color: var(--whitesmoke);
+    left: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .clipboard {
+        cursor: pointer;
+        transition: transform 0.3s ease-in;
+    }
+    .clipboard:active {
+        animation: pulse 0.3s ease;
+    }
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(0.9);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
 `;
 
 export default UserPrivateGame;

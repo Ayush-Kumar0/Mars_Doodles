@@ -245,7 +245,7 @@ class UserPublicRoom {
         if (this.isRoundOver === false) {
             this.isRoundOver = true;
             this.roundsCompleted++;
-            console.log(this.roundsCompleted, this.totalRounds);
+            // console.log(this.roundsCompleted, this.totalRounds);
             if (this.roundsCompleted < this.totalRounds) {
                 // Provide round results to all players
                 io.to(this.id).emit("provide-public-round-over");
@@ -395,6 +395,7 @@ const removePlayer = (player, io) => {
             // Delete the room also
             delete userPublicRooms[roomid];
         }
+        delete usersRoom[player.email];
     }
 }
 
@@ -413,7 +414,7 @@ const serializeRoom = (player) => {
         let roomid = usersRoom[player.email];
         let room = userPublicRooms[roomid];
         let players = room?.getPlayers();
-        console.log(players);
+        // console.log(players);
         if (!players)
             return {};
         let data = [];
@@ -523,7 +524,7 @@ module.exports.init = (socket, io) => {
     socket.on("get-public-room", (options, roomid) => {
         // Iff socket is authorized
         if (socket.user) {
-            console.log(usersInfo);
+            // console.log(usersInfo);
             // Email of logged in user
             const email = socket.user.email;
             if (isAlreadyPlaying(socket)) {

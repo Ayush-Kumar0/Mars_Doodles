@@ -37,3 +37,16 @@ module.exports.removeAlreadyPlaying = (socket) => {
         }
     }
 }
+
+//Generate a random/unique string identifier for a room
+module.exports.generateUniqueString = (n) => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let uniqueString = '';
+
+    for (let i = 0; i < (n || 6); i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        uniqueString += characters.charAt(randomIndex);
+    }
+
+    return uniqueString;
+}

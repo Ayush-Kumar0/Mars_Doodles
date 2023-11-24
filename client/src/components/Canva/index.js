@@ -5,7 +5,7 @@ import WaitingToStart from '../Loader/WaitingToStart';
 import Lobby from '../Loader/Lobby';
 
 
-function Canva({ hasStarted, isPublic }) {
+function Canva({ hasStarted, hasAdminConfigured, isPublic, admin, userGuest }) {
     // For dimensions of canvas
     const containerRef = useRef();
     const toolboxRef = useRef();
@@ -14,6 +14,8 @@ function Canva({ hasStarted, isPublic }) {
     const [tool, setTool] = React.useState('pen');
     const [lines, setLines] = React.useState([]);
     const isDrawing = React.useRef(false);
+    // Other states
+    const [amIAdmin, setAmIAdmin] = useState(false);
 
 
     // Layout and resizing of canvas 
@@ -40,6 +42,16 @@ function Canva({ hasStarted, isPublic }) {
         window.addEventListener('resize', handleResize);
         return () => { window.removeEventListener('resize', handleResize); }
     }, []);
+
+    // Set whether you are admin or not
+    useEffect(() => {
+        const userid = (userGuest && userGuest.user) ? userGuest.user._id : null;
+        if (admin && userid === admin.id) {
+            setAmIAdmin(true);
+        } else
+            setAmIAdmin(false);
+    }, [admin, userGuest]);
+
 
 
     // Drawing handlers
@@ -105,7 +117,7 @@ function Canva({ hasStarted, isPublic }) {
                 <Toolbox ref={toolboxRef}>
                 </Toolbox>
 
-                {!hasStarted && ((isPublic && <WaitingToStart />) || (!isPublic && <Lobby />))}
+                {(!hasStarted && !isPublic && amIAdmin && !hasAdminConfigured && <Lobby />) || (!hasStarted && <WaitingToStart />)}
             </CanvaContainer>
         </>
     )

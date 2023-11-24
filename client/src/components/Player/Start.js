@@ -8,7 +8,8 @@ function Start(props) {
         picture,
         handleOptionsButtonClick,
         playButtonPressed,
-        createButtonPressed
+        createButtonPressed,
+        joinButtonPressed
     } = props;
 
     const [name, setName] = useState(player_name);
@@ -29,9 +30,6 @@ function Start(props) {
             changeNameHandler(name, setName);
     }
 
-    const joinButtonPressed = (e) => {
-
-    }
 
     return (
         <Startcontainer>

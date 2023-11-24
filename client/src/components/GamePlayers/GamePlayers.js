@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-function GamePlayers({ playersParent, socket, artistPlayer, userGuest, currentResults }) {
+function GamePlayers({ playersParent, socket, artistPlayer, adminPlayer, userGuest, currentResults }) {
     const [players, setPlayers] = useState(playersParent);
     const [artist, setArtist] = useState(artistPlayer);
+    const [admin, setAdmin] = useState(adminPlayer);
 
     useEffect(() => {
         setArtist(artistPlayer);
     }, [artistPlayer]);
 
     useEffect(() => {
+        setAdmin(adminPlayer);
+    }, [adminPlayer]);
+
+    useEffect(() => {
         setPlayers(playersParent);
         console.log(userGuest);
         console.log(playersParent);
-    }, [playersParent]);
+    }, [playersParent, userGuest]);
 
 
     useEffect(() => {
@@ -26,7 +31,7 @@ function GamePlayers({ playersParent, socket, artistPlayer, userGuest, currentRe
             <ul>
                 {players && players.map(player => {
                     return (<li key={player.id} className={(((userGuest.guest && userGuest.guest._id === player.id) || (userGuest.user && userGuest.user._id === player.id)) ? 'myself' : '')}>
-                        <img className='profile_picture' src={(player && player.picture) ? player.picture : '/assets/no_profile_picture.svg'} />
+                        <img className={'profile_picture' + ((admin?.id === player.id) ? ' admin' : '')} src={(player && player.picture) ? player.picture : '/assets/no_profile_picture.svg'} />
                         <p>{player.name}</p>
                         <p className='score'>{currentResults[player.id] || 0}</p>
                         {artist && artist.id === player.id &&
@@ -111,6 +116,12 @@ const PlayersContainer = styled.div`
             .draw_icon {
                 height: 20px;
                 opacity: 0.5;
+            }
+
+            .admin {
+                border-style: solid;
+                border-width: 3px;
+                border-color: #179388;
             }
         }
 
