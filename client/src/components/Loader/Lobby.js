@@ -1,10 +1,16 @@
-import React, { useContext, useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import roomContext from '../../contexts/room/roomContext';
 import { toast } from 'react-toastify';
 
 function Lobby() {
     const { socket } = useContext(roomContext);
+    const [options, setOptions] = useState(() => {
+        if (localStorage.getItem('private-game-options'))
+            return JSON.parse(localStorage.getItem('private-game-options'));
+        else
+            return {};
+    });
     const ref1 = useRef({});
     const ref2 = useRef({});
     const ref3 = useRef({});
@@ -34,6 +40,7 @@ function Lobby() {
             minimumPlayers: ref4.current.value,
             maximumPlayers: ref5.current.value,
         }
+        localStorage.setItem('private-game-options', JSON.stringify(options));
         if (socket) {
             socket.emit("get-start-private-room", options);
         } else {
@@ -48,23 +55,26 @@ function Lobby() {
         <Container>
             <label className='label'>
                 <span>Chat enable:</span>
-                <input type='checkbox' defaultChecked ref={ref1} />
+                {(Object.keys(options).length === 0 || options.isChatEnabled)
+                    ? <input type='checkbox' defaultChecked ref={ref1} />
+                    : <input type='checkbox' ref={ref1} />
+                }
             </label>
             <label className='label'>
                 <span>Total Rounds:</span>
-                <input type='number' min={1} max={10} defaultValue={3} ref={ref2} />
+                <input type='number' min={1} max={10} defaultValue={options.totalRounds || 2} ref={ref2} />
             </label>
             <label className='label'>
                 <span>Drawing Time(s):</span>
-                <input type='number' min={20} max={600} defaultValue={120} ref={ref3} />
+                <input type='number' min={20} max={600} defaultValue={options.drawingTime || 120} ref={ref3} />
             </label>
             <label className='label'>
                 <span>Minimum players:</span>
-                <input type='number' min={2} max={31} defaultValue={4} ref={ref4} />
+                <input type='number' min={2} max={31} defaultValue={options.minimumPlayers || 2} ref={ref4} />
             </label>
             <label className='label'>
                 <span>Maximum players:</span>
-                <input type='number' min={2} max={31} defaultValue={16} ref={ref5} />
+                <input type='number' min={2} max={31} defaultValue={options.maximumPlayers || 16} ref={ref5} />
             </label>
 
             <Button onClick={handleStartGame}>Start</Button>

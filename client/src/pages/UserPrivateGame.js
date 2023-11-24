@@ -159,6 +159,7 @@ function UserPrivateGame() {
             setWaitingForNewArtist(false);
             setWaitingForNewRound(false);
             setAmIArtist(false);
+            setArtist(null);
             // Get out of the room yourself after 10 mins
             getOutOfRoomTimeout.current = setTimeout(() => {
                 if (socket) {
@@ -166,7 +167,7 @@ function UserPrivateGame() {
                     socket.disconnect();
                     nav('/user');
                 }
-            }, 10000);
+            }, 600000);
         });
 
         socket.on("provide-removed-private-game", (message) => {
@@ -174,6 +175,14 @@ function UserPrivateGame() {
             if (!isGameOver)
                 toast.info(message);
             socket.disconnect();
+            nav('/user');
+        });
+
+        // Show message that you got kicked
+        socket.on("provide-private-got-kicked", () => {
+            toast.info("You were kicked by Admin");
+            if (socket)
+                socket.disconnect();
             nav('/user');
         });
 
@@ -189,6 +198,7 @@ function UserPrivateGame() {
             socket.off("provide-private-round-over");
             socket.off("provide-private-game-ended");
             socket.off("provide-removed-private-game");
+            socket.off("provide-private-got-kicked");
             clearTimeout(getOutOfRoomTimeout?.current);
         }
     }, [socket, privateRoom]);
@@ -244,6 +254,15 @@ function UserPrivateGame() {
         }
     }
 
+    // Allow admin to kick any player
+    const kickPlayer = (e, playerid) => {
+        e.preventDefault();
+        console.log(playerid);
+        // Tell server to remove the player
+        if (socket)
+            socket.emit("get-kick-private-player", playerid);
+    }
+
     // Function to copy room id to clipboard on button click
     const copyToClipboard = (e) => {
         navigator.clipboard.writeText(privateRoom?.shortid);
@@ -258,7 +277,7 @@ function UserPrivateGame() {
                     <span className='givenword'>{fullWord ? fullWord : word}</span>
                     {isGameOver ? <span className='timer'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={privateRoom?.totalRounds} />}
                 </Topbar>
-                <GamePlayers artistPlayer={artist} adminPlayer={admin} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest}></GamePlayers>
+                <GamePlayers artistPlayer={artist} adminPlayer={admin} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest} kickPlayer={kickPlayer}></GamePlayers>
                 <Canva
                     hasStarted={hasStarted}
                     hasAdminConfigured={hasAdminConfigured}

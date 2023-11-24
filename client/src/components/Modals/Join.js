@@ -9,7 +9,7 @@ function Join({ joinButtonPressed }) {
         <JoinContainer>
             <label>
                 Room id:&nbsp;
-                <input type='text' placeholder='Enter room id' ref={roomidRef} defaultValue={''} />
+                <input type='text' placeholder='Enter room id' ref={roomidRef} defaultValue={''} autoFocus={true} onKeyDown={(e) => { e.key === 'Enter' && joinButtonPressed(e, roomidRef) }} />
             </label>
             <Button onClick={(e) => { joinButtonPressed(e, roomidRef) }}>
                 Join

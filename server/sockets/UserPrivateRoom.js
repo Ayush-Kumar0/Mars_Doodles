@@ -73,6 +73,8 @@ class UserPrivateRoom {
     isRoundOver;
     isGameOver;
 
+    blacklist; // Object containing keys for kicked players
+
 
     constructor(roomId, io) {
         this.id = roomId;
@@ -97,6 +99,7 @@ class UserPrivateRoom {
         while (shortRoomid.hasOwnProperty(uniqueStr)) uniqueStr = generateUniqueString(6);
         this.shortid = uniqueStr;
         shortRoomid[this.shortid] = this.id;
+        this.blacklist = {};
     }
 
     // Object info
@@ -328,7 +331,8 @@ class UserPrivateRoom {
 const joinRoom = (player, shortid) => {
     if (shortRoomid.hasOwnProperty(shortid)) {
         const room = userPrivateRooms[shortRoomid[shortid]];
-        if (room) {
+        console.log(room.blacklist);
+        if (room && !room.blacklist.hasOwnProperty(player.email)) {
             let res = room.addPlayer(player);
             if (res) {
                 usersRoom[player.email] = res.id;
@@ -371,6 +375,16 @@ const removePlayer = (player, io, socket) => {
             delete userPrivateRooms[roomid];
         }
         delete usersRoom[player.email];
+    }
+}
+
+
+// Kick players from the private room and don't let them join again
+const kickPlayerFromRoom = (email) => {
+    // Blacklist the user in this room
+    const room = userPrivateRooms[usersRoom[email]];
+    if (room) {
+        room.blacklist[email] = true;
     }
 }
 
@@ -708,6 +722,33 @@ module.exports.init = (socket, io) => {
                     room.artSessionOver(io);
                 }
             }
+        }
+    });
+
+    socket.on("get-kick-private-player", async (playerid) => {
+        try {
+            const email = socket.user.email;
+            const adminsRoom = userPrivateRooms[usersRoom[email]];
+            if (email && playerid && adminsRoom) {
+                const kickedPlayer = await User.findById(playerid);
+                if (kickedPlayer) {
+                    // Remove the player
+                    kickPlayerFromRoom(kickedPlayer.email);
+                    const room = userPrivateRooms[usersRoom[kickedPlayer.email]];
+                    if (room) {
+                        const kickedPlayerSocket = io.sockets.sockets.get(room.roomPlayers.get(kickedPlayer.email).sid);
+                        if (kickedPlayerSocket) {
+                            // Tell others that player has left
+                            kickedPlayerSocket.broadcast.to(room.id).emit("provide-private-player-left", usersInfo[kickedPlayer.email]);
+                            kickedPlayerSocket.emit("provide-private-got-kicked");
+                            removePlayer({ email: kickedPlayer.email, id: kickedPlayerSocket.id }, io, kickedPlayerSocket);
+                            delete usersInfo[kickedPlayer.email];
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.log(err);
         }
     });
 }

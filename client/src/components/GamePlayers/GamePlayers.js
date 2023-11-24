@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import PlayerOptions from '../Modals/PlayerOptions';
 
-function GamePlayers({ playersParent, socket, artistPlayer, adminPlayer, userGuest, currentResults }) {
+function GamePlayers({ playersParent, socket, artistPlayer, adminPlayer, userGuest, currentResults, kickPlayer }) {
     const [players, setPlayers] = useState(playersParent);
     const [artist, setArtist] = useState(artistPlayer);
     const [admin, setAdmin] = useState(adminPlayer);
+    const [playerOptionVisible, setPlayerOptionVisible] = useState(null);
 
     useEffect(() => {
         setArtist(artistPlayer);
@@ -30,7 +32,11 @@ function GamePlayers({ playersParent, socket, artistPlayer, adminPlayer, userGue
             <p className='players'>Players</p>
             <ul>
                 {players && players.map(player => {
-                    return (<li key={player.id} className={(((userGuest.guest && userGuest.guest._id === player.id) || (userGuest.user && userGuest.user._id === player.id)) ? 'myself' : '')}>
+                    return (<li key={player.id} className={(((userGuest.guest && userGuest.guest._id === player.id) || (userGuest.user && userGuest.user._id === player.id)) ? 'myself' : '')}
+                        onClick={(e) => {
+                            if (userGuest.user && admin && admin.id === userGuest.user._id && (userGuest.user && userGuest.user._id !== player.id))
+                                return setPlayerOptionVisible(player.id);
+                        }}>
                         <img className={'profile_picture' + ((admin?.id === player.id) ? ' admin' : '')} src={(player && player.picture) ? player.picture : '/assets/no_profile_picture.svg'} />
                         <p>{player.name}</p>
                         <p className='score'>{currentResults[player.id] || 0}</p>
@@ -40,6 +46,7 @@ function GamePlayers({ playersParent, socket, artistPlayer, adminPlayer, userGue
                 })}
                 {/* <li><img src='/assets/no_profile_picture.svg' /><p>Ayush</p></li> */}
             </ul>
+            {playerOptionVisible && <PlayerOptions close={() => setPlayerOptionVisible(null)} id={playerOptionVisible} kickPlayer={kickPlayer} />}
         </PlayersContainer>
     );
 }
