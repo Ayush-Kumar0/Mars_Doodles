@@ -139,9 +139,9 @@ class UserPublicRoom {
                     // TODO: Add scoring algorithm to give scores correctly
                     const calcScore = () => {
                         let timediff = Date.now() - this.artStartTime;
-                        let factors = [2.00, 1.75, 1.50, 1.25];
+                        let factors = [1.69, 1.44, 1.21, 1.0];
                         let playerScore = ((this.playerTime - timediff) / this.playerTime) * 120 + 10;
-                        let artistScore = factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * 120 + 10;
+                        let artistScore = factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore;
                         return [playerScore, artistScore];
                     }
                     const [playerScore, artistScore] = calcScore();
@@ -486,7 +486,45 @@ const isPlayerArtist = (player) => {
 // Do word hiding
 const filterText = (player, text) => {
     // TODO: Message filtering
-    return text;
+    function isNearMatch(str1, str2, threshold = 1) {
+        function calculateLevenshteinDistance(s1, s2) {
+            const m = s1.length;
+            const n = s2.length;
+            const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+            for (let i = 0; i <= m; i++) {
+                for (let j = 0; j <= n; j++) {
+                    if (i === 0) {
+                        dp[i][j] = j;
+                    } else if (j === 0) {
+                        dp[i][j] = i;
+                    } else {
+                        const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+                        dp[i][j] = Math.min(
+                            dp[i - 1][j] + 1,
+                            dp[i][j - 1] + 1,
+                            dp[i - 1][j - 1] + cost
+                        );
+                    }
+                }
+            }
+
+            return dp[m][n];
+        }
+
+        const distance = calculateLevenshteinDistance(str1, str2);
+
+        return distance <= threshold;
+    }
+
+    const guessWord = userPublicRooms[usersRoom[player.email]].currentWord;
+    if (guessWord && isNearMatch(text, guessWord, Math.floor(0.3 * guessWord.length)))
+        return {
+            near: true,
+            text: (text + ' (Near Match)')
+        };
+    else
+        return { near: false, text };
 }
 
 
@@ -630,8 +668,9 @@ module.exports.init = (socket, io) => {
                     } else {
                         // Not guessed, but have to filter for any hints
                         const filteredText = filterText({ email }, text);
-                        socket.broadcast.to(getUsersRoomId({ email })).emit("provide-new-public-chat", { sender: player, message: filteredText, score, guessed: false });
-                        socket.emit("provide-new-public-chat-self", { sender: player, message: filteredText, score, guessed: false });
+                        if (!filteredText.near)
+                            socket.broadcast.to(getUsersRoomId({ email })).emit("provide-new-public-chat", { sender: player, message: text, score, guessed: false });
+                        socket.emit("provide-new-public-chat-self", { sender: player, message: filteredText.text, score, guessed: false });
                     }
                 }
             }

@@ -1,22 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import Modal2 from '../Modals/Modal2';
+import styled from 'styled-components';
 
-function sortByProperty(arr, prop) {
+function sortByProperty(arr, prop, descending = true) {
     return arr.sort((a, b) => {
-        // Assuming the property is a number or a string
         const valueA = a[prop];
         const valueB = b[prop];
 
-        // Adjust the comparison based on the data type of the property
+        let comparison = 0;
+
         if (typeof valueA === 'number' && typeof valueB === 'number') {
-            return valueA - valueB;
+            comparison = valueA - valueB;
         } else if (typeof valueA === 'string' && typeof valueB === 'string') {
-            return valueA.localeCompare(valueB);
+            comparison = valueA.localeCompare(valueB);
         }
 
-        // Add additional cases for other data types if needed
-
-        return 0; // Default case, no change in order
+        // Reverse the order if descending is true
+        return descending ? comparison * -1 : comparison;
     });
 }
 
@@ -28,36 +28,46 @@ function RoundOver({ close, currentRoundScore, players }) {
             value.score = currentRoundScore[value.id] || 0;
             return value;
         });
+        sortByProperty(newPlayers, 'score');
         setPlayersNew(newPlayers);
         console.log(newPlayers);
     }, [players, currentRoundScore]);
     return (
         <Modal2 close={close}>
-            <h2>Round results:</h2>
-            <table>
-                <thead>
-                    <td>
-                        <b>Player name</b>
-                    </td>
-                    <td>
-                        <b>Score</b>
-                    </td>
-                </thead>
-                <tbody>
-                    {playersNew.map((value) => {
-                        return <tr>
-                            <td>
-                                {value.name}
-                            </td>
-                            <td>
-                                {value.score}
-                            </td>
-                        </tr>
-                    })}
-                </tbody>
-            </table>
+            <Container>
+                <h2>Round results:</h2>
+                <table>
+                    <thead>
+                        <td>
+                            <b>Player name</b>
+                        </td>
+                        <td>
+                            <b>Score</b>
+                        </td>
+                    </thead>
+                    <tbody>
+                        {playersNew.map((value) => {
+                            return <tr>
+                                <td>
+                                    {value.name}
+                                </td>
+                                <td>
+                                    {value.score}
+                                </td>
+                            </tr>
+                        })}
+                    </tbody>
+                </table>
+            </Container>
         </Modal2>
     );
 }
+
+const Container = styled.div`
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+`;
 
 export default RoundOver;

@@ -132,9 +132,9 @@ class GuestPublicRoom {
                     // TODO: Add scoring algorithm to give scores correctly
                     const calcScore = () => {
                         let timediff = Date.now() - this.artStartTime;
-                        let factors = [2.00, 1.75, 1.50, 1.25];
+                        let factors = [1.69, 1.44, 1.21, 1.0];
                         let playerScore = ((this.playerTime - timediff) / this.playerTime) * 120 + 10;
-                        let artistScore = factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * 120 + 10;
+                        let artistScore = factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore;
                         return [playerScore, artistScore];
                     }
                     const [playerScore, artistScore] = calcScore();
@@ -470,7 +470,7 @@ const isPlayerArtist = (player) => {
 // Do word hiding
 const filterText = (player, text) => {
     // TODO: Message filtering
-    function isNearMatch(str1, str2, threshold = 3) {
+    function isNearMatch(str1, str2, threshold = 1) {
         function calculateLevenshteinDistance(s1, s2) {
             const m = s1.length;
             const n = s2.length;
@@ -502,7 +502,7 @@ const filterText = (player, text) => {
     }
 
     const guessWord = guestPublicRooms[guestsRoom[player.id]].currentWord;
-    if (isNearMatch(text, guessWord, Math.floor(0.3 * guessWord.length)))
+    if (guessWord && isNearMatch(text, guessWord, Math.floor(0.3 * guessWord.length)))
         return {
             near: true,
             text: (text + ' (Near Match)')
