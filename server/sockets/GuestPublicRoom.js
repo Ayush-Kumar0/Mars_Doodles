@@ -470,7 +470,45 @@ const isPlayerArtist = (player) => {
 // Do word hiding
 const filterText = (player, text) => {
     // TODO: Message filtering
-    return text;
+    function isNearMatch(str1, str2, threshold = 3) {
+        function calculateLevenshteinDistance(s1, s2) {
+            const m = s1.length;
+            const n = s2.length;
+            const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+            for (let i = 0; i <= m; i++) {
+                for (let j = 0; j <= n; j++) {
+                    if (i === 0) {
+                        dp[i][j] = j;
+                    } else if (j === 0) {
+                        dp[i][j] = i;
+                    } else {
+                        const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+                        dp[i][j] = Math.min(
+                            dp[i - 1][j] + 1,
+                            dp[i][j - 1] + 1,
+                            dp[i - 1][j - 1] + cost
+                        );
+                    }
+                }
+            }
+
+            return dp[m][n];
+        }
+
+        const distance = calculateLevenshteinDistance(str1, str2);
+
+        return distance <= threshold;
+    }
+
+    const guessWord = guestPublicRooms[guestsRoom[player.id]].currentWord;
+    if (isNearMatch(text, guessWord, Math.floor(0.3 * guessWord.length)))
+        return {
+            near: true,
+            text: (text + ' (Near Match)')
+        };
+    else
+        return { near: false, text };
 }
 
 
@@ -609,8 +647,9 @@ module.exports.init = (socket, io) => {
                     } else {
                         // Not guessed, but have to filter for any hints
                         const filteredText = filterText({ id: socket.id }, text);
-                        socket.broadcast.to(getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: filteredText, score, guessed: false });
-                        socket.emit("provide-new-public-chat-self", { sender: player, message: filteredText, score, guessed: false });
+                        if (!filteredText.near)
+                            socket.broadcast.to(getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: text, score, guessed: false });
+                        socket.emit("provide-new-public-chat-self", { sender: player, message: filteredText.text, score, guessed: false });
                     }
                 }
             }
