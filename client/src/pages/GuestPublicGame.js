@@ -224,7 +224,7 @@ function GuestPublicGame() {
                 <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist} isChatEnabledParent={true}></Chatbox>
             </GameContainer>
             {artOverModalVisible && <ArtSessionOver close={() => setArtOverModalVisible(false)} artOverMsg={artOverMsg} wasIArtist={wasIArtist} />}
-            {roundOverModalVisible && <RoundOver close={() => setRoundOverModalVisible(false)} currentRoundScore={currentRoundScore} />}
+            {roundOverModalVisible && <RoundOver close={() => setRoundOverModalVisible(false)} currentResults={currentResults} players={players} />}
             {gameOverModalVisible && <GameOver close={() => setGameOverModalVisible(false)} />}
         </>
     );
