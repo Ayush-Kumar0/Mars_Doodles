@@ -99,5 +99,24 @@ module.exports = (io) => {
                 removeAlreadyPlaying(socket);
             });
         }
+
+
+        socket.on("provide-new-history", (history, dimensions) => {
+            if (socket.user) {
+                const email = socket.user.email;
+                if (UserPublicRoom.getUsersRoomId({ email }) && UserPublicRoom.isPlayerArtist({ email })) {
+                    socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email }))
+                        .emit("get-new-history", history, dimensions);
+                } else if (UserPrivateRoom.getUsersRoomId({ email }) && UserPrivateRoom.isPlayerArtist({ email })) {
+                    socket.broadcast.to(UserPrivateRoom.getUsersRoomId({ email }))
+                        .emit("get-new-history", history, dimensions);
+                }
+            } else if (socket.guest) {
+                if (GuestPublicRoom.getUsersRoomId({ id: socket.id }) && GuestPublicRoom.isPlayerArtist({ id: socket.id })) {
+                    socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id }))
+                        .emit("get-new-history", history, dimensions);
+                }
+            }
+        });
     });
 }

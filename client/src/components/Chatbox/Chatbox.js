@@ -20,6 +20,7 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
         if (isPrivate) {
             socket.on("provide-new-private-chat", (chat) => {
                 handleScoreStorage(chat.sender, chat.score);
+                if (chat.isArtist) return;
                 if (chat.guessed)
                     setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: `Guessed it.`, className: 'otherguessed' }]);
                 else
@@ -27,6 +28,7 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
             });
             socket.on("provide-new-private-chat-self", (chat) => {
                 handleScoreStorage(chat.sender, chat.score);
+                if (chat.isArtist) return;
                 if (chat.guessed)
                     setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You gessed it : " + chat.message, className: 'youguessed' }]);
                 else
@@ -35,6 +37,7 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
         } else {
             socket.on("provide-new-public-chat", (chat) => {
                 handleScoreStorage(chat.sender, chat.score);
+                if (chat.isArtist) return;
                 if (chat.guessed)
                     setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: `Guessed it.`, className: 'otherguessed' }]);
                 else
@@ -42,6 +45,7 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
             });
             socket.on("provide-new-public-chat-self", (chat) => {
                 handleScoreStorage(chat.sender, chat.score);
+                if (chat.isArtist) return;
                 if (chat.guessed)
                     setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You gessed it : " + chat.message, className: 'youguessed' }]);
                 else

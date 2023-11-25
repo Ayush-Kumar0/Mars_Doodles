@@ -234,6 +234,7 @@ function UserPrivateGame() {
     // Score changer
     const handleScoreStorage = (player, score) => {
         console.log(player, score);
+        score = Math.floor(score);
         if (player && player.id && Number.isInteger(score)) {
             setCurrentResults(prevResults => {
                 const updatedResults = Object.create(prevResults);
@@ -284,6 +285,9 @@ function UserPrivateGame() {
                     isPublic={false}
                     admin={admin}
                     userGuest={userGuest}
+                    amIArtistParent={amIArtist}
+                    socket={socket}
+                    waitingForNewArtist={waitingForNewArtist}
                 ></Canva>
                 <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist} isPrivate={true} isChatEnabledParent={privateRoom?.isChatEnabled}></Chatbox>
             </GameContainer>

@@ -195,6 +195,7 @@ function UserPublicGame() {
     // Score changer
     const handleScoreStorage = (player, score) => {
         console.log(player, score);
+        score = Math.floor(score);
         if (player && player.id && Number.isInteger(score)) {
             setCurrentResults(prevResults => {
                 const updatedResults = Object.create(prevResults);
@@ -223,6 +224,9 @@ function UserPublicGame() {
                 <Canva
                     hasStarted={hasStarted}
                     isPublic={true}
+                    socket={socket}
+                    amIArtistParent={amIArtist}
+                    waitingForNewArtist={waitingForNewArtist}
                 ></Canva>
                 <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist} isChatEnabledParent={true}></Chatbox>
             </GameContainer>

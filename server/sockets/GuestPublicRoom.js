@@ -59,6 +59,7 @@ class GuestPublicRoom {
     roomSize;
     artistSid;
     artOverRequests;
+    artStartTime;
 
     hasStarted;
     isArtSessionOver;
@@ -125,13 +126,22 @@ class GuestPublicRoom {
         try {
             if (this.currentWord && text && this.currentWord.toLowerCase() === text.trim().toLowerCase()) {
                 let oldPlayer = this.roomPlayers.get(player.id);
+                let artistPlayer = this.roomPlayers.get(this.artistSid);
                 // // console.log(player.id, this.artistSid);
                 if (oldPlayer && !oldPlayer.hasGuessed && !this.isGameOver && player.id != this.artistSid) {
                     // TODO: Add scoring algorithm to give scores correctly
-                    const scoreAddition = 100;
-                    oldPlayer.score = Number.isInteger(oldPlayer.score) ? (oldPlayer.score + scoreAddition) : scoreAddition;
+                    const calcScore = () => {
+                        let timediff = Date.now() - this.artStartTime;
+                        let factors = [2.00, 1.75, 1.50, 1.25];
+                        let playerScore = ((this.playerTime - timediff) / this.playerTime) * 120 + 10;
+                        let artistScore = factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * 120 + 10;
+                        return [playerScore, artistScore];
+                    }
+                    const [playerScore, artistScore] = calcScore();
+                    oldPlayer.score = Number.isInteger(oldPlayer.score) ? (oldPlayer.score + playerScore) : playerScore;
                     oldPlayer.hasGuessed = true;
-                    return scoreAddition;
+                    artistPlayer.score = Number.isInteger(artistPlayer.score) ? (artistPlayer.score + artistScore) : artistScore;
+                    return [playerScore, artistScore];
                 }
             }
         } catch (err) {
@@ -192,6 +202,7 @@ class GuestPublicRoom {
         }
     }
     emitToNonArtists(io) {
+        this.artStartTime = Date.now();
         this.isArtSessionOver = false;
         this.isRoundOver = false;
         // Send game information to other players in room
@@ -484,7 +495,7 @@ const filterText = (player, text) => {
 
 
 
-
+module.exports.isPlayerArtist = isPlayerArtist;
 module.exports.removePlayer = removePlayer;
 module.exports.getUsersRoomId = getUsersRoomId;
 
@@ -592,8 +603,9 @@ module.exports.init = (socket, io) => {
                     const score = giveScoreToPlayer({ id: socket.id }, text);
                     if (score) {
                         // Someone guessed
-                        socket.broadcast.to(getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: '', score, guessed: true });
-                        socket.emit("provide-new-public-chat-self", { sender: player, message: text, score, guessed: true });
+                        socket.broadcast.to(getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: player, message: '', score: score[0], guessed: true });
+                        socket.emit("provide-new-public-chat-self", { sender: player, message: text, score: score[0], guessed: true });
+                        io.to(getUsersRoomId({ id: socket.id })).emit("provide-new-public-chat", { sender: guestsInfo[guestPublicRooms[guestsRoom[socket.id]].artistSid], score: score[1], isArtist: true });
                     } else {
                         // Not guessed, but have to filter for any hints
                         const filteredText = filterText({ id: socket.id }, text);

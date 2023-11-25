@@ -188,6 +188,7 @@ function GuestPublicGame() {
     // Score changer
     const handleScoreStorage = (player, score) => {
         console.log(player, score);
+        score = Math.floor(score);
         if (player && player.id && Number.isInteger(score)) {
             setCurrentResults(prevResults => {
                 const updatedResults = Object.create(prevResults);
@@ -213,7 +214,13 @@ function GuestPublicGame() {
             <GameContainer>
                 <Topbar><Leave onClick={exitRoom}><img src='/assets/exit_room.svg' /></Leave><span>{fullWord ? fullWord : word}</span><Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={publicRoom?.totalRounds} /></Topbar>
                 <GamePlayers artistPlayer={artist} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest}></GamePlayers>
-                <Canva></Canva>
+                <Canva
+                    amIArtistParent={amIArtist}
+                    hasStarted={hasStarted}
+                    isPublic={true}
+                    socket={socket}
+                    waitingForNewArtist={waitingForNewArtist}
+                ></Canva>
                 <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist} isChatEnabledParent={true}></Chatbox>
             </GameContainer>
             {artOverModalVisible && <ArtSessionOver close={() => setArtOverModalVisible(false)} artOverMsg={artOverMsg} wasIArtist={wasIArtist} />}
