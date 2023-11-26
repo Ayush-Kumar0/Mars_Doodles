@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import GamePlayers from '../components/GamePlayers/GamePlayers';
@@ -9,6 +9,7 @@ import authContext from '../contexts/auth/authContext';
 import ArtSessionOver from '../components/Modals/ArtSessionOver';
 import RoundOver from '../components/Modals/RoundOver';
 import GameOver from '../components/Modals/GameOver';
+import { toast } from 'react-toastify';
 
 function UserPublicGame() {
     const nav = useNavigate();
@@ -30,6 +31,7 @@ function UserPublicGame() {
     // Timer
     const [timer, setTimer] = useState(null);
     const [round, setRound] = useState(0);
+    const getOutOfRoomTimeout = useRef(null);
     // Modals
     const [artOverModalVisible, setArtOverModalVisible] = useState(false);
     const [artOverMsg, setArtOverMsg] = useState('');
@@ -142,13 +144,23 @@ function UserPublicGame() {
         });
 
         socket.on("provide-public-game-ended", (result) => {
+            setWord('');
+            setFullWord('');
             setGameOverModalVisible(true);
             setIsGameOver(true);
             setArtOverModalVisible(false);
             setRoundOverModalVisible(false);
             setWaitingForNewArtist(false);
             setWaitingForNewRound(false);
-            setTimer(0);
+            setTimer(undefined);
+            // Get out of the room yourself after 2 mins
+            getOutOfRoomTimeout.current = setTimeout(() => {
+                if (socket) {
+                    toast.info('Room time expired');
+                    socket.disconnect();
+                    nav('/user');
+                }
+            }, 2 * 60 * 1000);
         });
 
 
@@ -161,6 +173,7 @@ function UserPublicGame() {
             socket.off("provide-public-artist-over");
             socket.off("provid-public-round-over");
             socket.off("provide-public-game-ended");
+            clearTimeout(getOutOfRoomTimeout?.current);
         }
     }, [socket, publicRoom]);
 
@@ -219,7 +232,11 @@ function UserPublicGame() {
     return (
         <>
             <GameContainer>
-                <Topbar><Leave onClick={exitRoom}><img src='/assets/exit_room.svg' /></Leave><span>{fullWord ? fullWord : word}</span><Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={publicRoom?.totalRounds} /></Topbar>
+                <Topbar>
+                    <Leave onClick={exitRoom}><img src='/assets/exit_room.svg' /></Leave>
+                    <span>{fullWord ? fullWord : word}</span>
+                    {isGameOver ? <span className='timer'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={publicRoom?.totalRounds} />}
+                </Topbar>
                 <GamePlayers artistPlayer={artist} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest}></GamePlayers>
                 <Canva
                     hasStarted={hasStarted}

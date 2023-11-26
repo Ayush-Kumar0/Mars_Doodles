@@ -9,10 +9,10 @@ const guestsInfo = require('./data').guestsInfo; // { player_sid: {id, name, typ
 const removeObjectKey = require('./utils').removeObjectKey;
 
 
-const startLimit = 2, roomLimit = 31;
-const defaultPlayerTime = 30000, defaultTimeBtwRounds = 5000, defaultTimeBtwArtSessions = 3000;
+const startLimit = 2, roomLimit = 16;
+const defaultPlayerTime = 1 * 60 * 1000, defaultTimeBtwRounds = 10000, defaultTimeBtwArtSessions = 5000;
 const defaultTotalRounds = 2, defaultPercentWordReveal = 1;
-const latencyDelay = 2000; // Latency should always be less than time between session
+const latencyDelay = 3000; // Latency should always be less than time between session
 
 
 
@@ -297,6 +297,7 @@ class GuestPublicRoom {
     endGame(io) {
         clearInterval(this.hint);
         this.isGameOver = true;
+        this.artistSid = null;
         io.to(this.id).emit("provide-public-game-ended", "The game has ended");
         // Let players chat even after game is over
         // console.log('Game is over');

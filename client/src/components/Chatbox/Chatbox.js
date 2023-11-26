@@ -30,7 +30,7 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
                 handleScoreStorage(chat.sender, chat.score);
                 if (chat.isArtist) return;
                 if (chat.guessed)
-                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You gessed it : " + chat.message, className: 'youguessed' }]);
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You guessed it : " + chat.message, className: 'youguessed' }]);
                 else
                     setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
             });
@@ -47,7 +47,7 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
                 handleScoreStorage(chat.sender, chat.score);
                 if (chat.isArtist) return;
                 if (chat.guessed)
-                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You gessed it : " + chat.message, className: 'youguessed' }]);
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You guessed it : " + chat.message, className: 'youguessed' }]);
                 else
                     setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
             });

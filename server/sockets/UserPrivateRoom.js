@@ -447,6 +447,7 @@ const serializeRoom = (player) => {
             roundsCompleted: room.roundsCompleted,
             totalRounds: room.totalRounds,
             isChatEnabled: room.isChatEnabled,
+            isGameOver: room.isGameOver,
         };
         return obj;
     } catch (err) {
@@ -509,7 +510,7 @@ const filterText = (player, text) => {
         return distance <= threshold;
     }
 
-    const guessWord = userPublicRooms[usersRoom[player.email]].currentWord;
+    const guessWord = userPrivateRooms[usersRoom[player.email]].currentWord;
     if (guessWord && isNearMatch(text, guessWord, Math.floor(0.3 * guessWord.length)))
         return {
             near: true,

@@ -304,6 +304,7 @@ class UserPublicRoom {
     endGame(io) {
         clearInterval(this.hint);
         this.isGameOver = true;
+        this.artistEmail = null;
         io.to(this.id).emit("provide-public-game-ended", "The game has ended");
         // Let players chat even after game is over
         // console.log('Game is over');

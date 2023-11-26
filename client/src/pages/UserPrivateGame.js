@@ -72,6 +72,11 @@ function UserPrivateGame() {
                 scoreObj[plr.id] = plr.score;
             }
             setCurrentResults(scoreObj);
+            if (result.isGameOver) {
+                setWord('');
+                setFullWord('');
+            }
+            setIsGameOver(result.isGameOver);
         });
 
         return () => {
@@ -160,14 +165,14 @@ function UserPrivateGame() {
             setWaitingForNewRound(false);
             setAmIArtist(false);
             setArtist(null);
-            // Get out of the room yourself after 10 mins
+            // Get out of the room yourself after 3 mins
             getOutOfRoomTimeout.current = setTimeout(() => {
                 if (socket) {
                     toast.info('Room time expired');
                     socket.disconnect();
                     nav('/user');
                 }
-            }, 600000);
+            }, 3 * 60 * 1000);
         });
 
         socket.on("provide-removed-private-game", (message) => {
@@ -293,7 +298,7 @@ function UserPrivateGame() {
             </GameContainer>
             {artOverModalVisible && <ArtSessionOver close={() => setArtOverModalVisible(false)} artOverMsg={artOverMsg} wasIArtist={wasIArtist} />}
             {roundOverModalVisible && <RoundOver close={() => setRoundOverModalVisible(false)} currentResults={currentResults} players={players} />}
-            {gameOverModalVisible && <GameOver close={() => setGameOverModalVisible(false)} />}
+            {gameOverModalVisible && <GameOver close={() => setGameOverModalVisible(false)} currentResults={currentResults} players={players} />}
         </>
     );
 }
