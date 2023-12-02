@@ -71,14 +71,24 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     const isDrawing = React.useRef(false);
     const [history, setHistory] = useState([]); // Use it like a linear list of operations
     const [undoHistory, setUndoHistory] = useState([]); // Use it like a stack
+    const historyRef = useRef(history);
 
 
     useEffect(() => {
         const interval = setInterval(() => {
-            if (socket && amIArtist) {
-                socket.emit("provide-new-history", history, { ...dimensions });
+            if (socket && amIArtist && historyRef) {
+                socket.emit("provide-new-history", historyRef.current, { ...dimensions });
             }
-        }, 100);
+        }, 25);
+        return () => {
+            clearInterval(interval);
+        }
+    }, [socket, amIArtist]);
+
+
+
+
+    useEffect(() => {
         socket.on("get-new-history", (history, originalDimensions) => {
             // setHistory(history);
             const scaleX = dimensions.width / originalDimensions.width;
@@ -126,12 +136,18 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
             setHistory(history);
         });
         return () => {
-            clearInterval(interval);
             socket.off("get-new-history");
         }
-    }, [socket, amIArtist, history, dimensions]);
+    }, [socket, amIArtist, dimensions]);
 
 
+
+
+
+
+    useEffect(() => {
+        historyRef.current = history;
+    }, [history]);
 
 
     // Drawing handlers
