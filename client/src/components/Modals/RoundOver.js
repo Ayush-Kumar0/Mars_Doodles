@@ -38,16 +38,14 @@ function RoundOver({ close, currentRoundScore, players }) {
                 <h2>Round results:</h2>
                 <table>
                     <thead>
-                        <td>
-                            <b>Player name</b>
-                        </td>
-                        <td>
-                            <b>Score</b>
-                        </td>
+                        <tr>
+                            <th>Player name</th>
+                            <th>Score</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        {playersNew.map((value) => {
-                            return <tr>
+                        {playersNew.map((value, i) => {
+                            return <tr key={i}>
                                 <td>
                                     {value.name}
                                 </td>

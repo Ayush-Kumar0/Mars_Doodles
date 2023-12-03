@@ -11,12 +11,19 @@ const Tools = Object.freeze({
     Circle: 4
 });
 
+const Pointer = Object.freeze({
+    Pencil: 1,
+    Eraser: 2,
+    Crosshair: 3,
+});
+
 
 function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGuest, amIArtistParent, waitingForNewArtist }) {
     // For dimensions of canvas
     const containerRef = useRef();
     const toolboxRef = useRef();
     const [dimensions, setDimensions] = useState({});
+    const stageRef = useRef(null);
     // Auth states
     const [amIAdmin, setAmIAdmin] = useState(false);
     const [amIArtist, setAmIArtist] = useState(amIArtistParent);
@@ -72,77 +79,126 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     const [history, setHistory] = useState([]); // Use it like a linear list of operations
     const [undoHistory, setUndoHistory] = useState([]); // Use it like a stack
     const historyRef = useRef(history);
+    const undoHistoryRef = useRef(undoHistory);
+    const bufferRef = useRef([]);
+    // Mouse pointer states
+    const toolLocation = useRef(null); // {x: , y: }
+    const toolPointer = useRef(Pointer.Pencil);
+    const drawingPointerRef = useRef(null);
 
+
+    // Drawing useEffects
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            if (socket && amIArtist && historyRef) {
-                socket.emit("provide-new-history", historyRef.current, { ...dimensions });
+        const interval1 = setInterval(() => {
+            if (socket && amIArtist && bufferRef && bufferRef.current.length !== 0) {
+                // console.log(bufferRef.current);
+                socket.emit("provide-new-history", bufferRef.current, { ...dimensions });
+                bufferRef.current = [];
             }
-        }, 25);
+        }, 100);
         return () => {
-            clearInterval(interval);
+            clearInterval(interval1);
         }
-    }, [socket, amIArtist]);
-
-
+    }, [socket, amIArtist, dimensions]);
 
 
     useEffect(() => {
-        socket.on("get-new-history", (history, originalDimensions) => {
-            // setHistory(history);
+        socket?.on("get-new-history", (drawingChanges, originalDimensions) => {
             const scaleX = dimensions.width / originalDimensions.width;
             const scaleY = dimensions.height / originalDimensions.height;
-            history = history.map((value) => {
-                switch (value.type) {
-                    case Tools.Pencil: {
-                        value.points = value.points.map((value, i) => {
-                            if (i % 2 === 0)
-                                value *= scaleX;
-                            else
-                                value *= scaleY;
-                            return value;
-                        });
+            // history = history.map((value) => {
+            //     switch (value.type) {
+            //         case Tools.Pencil: {
+            //             value.points = value.points.map((value, i) => {
+            //                 if (i % 2 === 0)
+            //                     value *= scaleX;
+            //                 else
+            //                     value *= scaleY;
+            //                 return value;
+            //             });
+            //             break;
+            //         }
+            //         case Tools.Eraser: {
+            //             value.points = value.points.map((value, i) => {
+            //                 if (i % 2 === 0)
+            //                     value *= scaleX;
+            //                 else
+            //                     value *= scaleY;
+            //                 return value;
+            //             });
+            //             break;
+            //         }
+            //         case Tools.Rectangle: {
+            //             value.x0 *= scaleX;
+            //             value.y0 *= scaleY;
+            //             value.x1 *= scaleX;
+            //             value.y1 *= scaleY;
+            //             break;
+            //         }
+            //         case Tools.Circle: {
+            //             value.x *= scaleX;
+            //             value.y *= scaleY;
+            //             value.radius *= Math.min(scaleX, scaleY);
+            //             break;
+            //         }
+            //         default:
+            //             break;
+            //     }
+            //     return value;
+            // });
+
+            drawingChanges.forEach((value) => {
+                switch (value?.action) {
+                    case 'add': {
+                        // TODO: Scaling
+                        historyRef?.current.push(value?.drawing);
                         break;
                     }
-                    case Tools.Eraser: {
-                        value.points = value.points.map((value, i) => {
-                            if (i % 2 === 0)
-                                value *= scaleX;
-                            else
-                                value *= scaleY;
-                            return value;
-                        });
-                        break;
-                    }
-                    case Tools.Rectangle: {
-                        value.x0 *= scaleX;
-                        value.y0 *= scaleY;
-                        value.x1 *= scaleX;
-                        value.y1 *= scaleY;
-                        break;
-                    }
-                    case Tools.Circle: {
-                        value.x *= scaleX;
-                        value.y *= scaleY;
-                        value.radius *= Math.min(scaleX, scaleY);
+                    case 'update': {
+                        let lastDrawing = historyRef?.current[historyRef?.current.length - 1];
+                        switch (lastDrawing?.type) {
+                            case Tools.Pencil: {
+                                // TODO: Scale value.point
+                                lastDrawing.points = lastDrawing?.points.concat(Array.from(value.point));
+                                break;
+                            }
+                            case Tools.Eraser: {
+                                // TODO: Scale value.point
+                                lastDrawing.points = lastDrawing?.points.concat(Array.from(value.point));
+                                break;
+                            }
+                            case Tools.Rectangle: {
+                                // TODO: Scale value.point
+                                const point = Array.from(value.point);
+                                lastDrawing.x1 = point[0];
+                                lastDrawing.y1 = point[1];
+                                break;
+                            }
+                            case Tools.Circle: {
+                                // TODO: Scale value.point
+                                const radius = value.radius;
+                                lastDrawing.radius = radius;
+                                break;
+                            }
+                            default:
+                                break;
+                        }
                         break;
                     }
                     default:
                         break;
                 }
-                return value;
             });
-            setHistory(history);
+            setHistory([...historyRef?.current]);
+            undoHistoryRef.current = [];
+            setUndoHistory([]);
         });
+
         return () => {
             socket.off("get-new-history");
         }
     }, [socket, amIArtist, dimensions]);
-
-
-
-
 
 
     useEffect(() => {
@@ -150,11 +206,59 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     }, [history]);
 
 
-    // Drawing handlers
-    const handleMouseDown = (e) => {
-        if (!amIArtist) return;
-        isDrawing.current = true;
-        const pos = e.target.getStage().getPointerPosition();
+    // Mouse location useEffects
+
+    useEffect(() => {
+        const interval2 = setInterval(() => {
+            console.log(toolLocation?.current, toolPointer?.current);
+            if (socket && amIArtist && toolLocation?.current) {
+                socket.emit("provide-mouse-pointer", toolLocation?.current, toolPointer?.current);
+            }
+        }, 100);
+        return () => {
+            clearInterval(interval2);
+        }
+    }, [socket, amIArtist]);
+
+    useEffect(() => {
+        socket?.on("get-mouse-pointer", (location, pointerType) => {
+            // console.log(location, pointerType);
+            setDrawingToolPointer(location, pointerType);
+        });
+        return () => {
+            socket?.off("get-mouse-pointer");
+        }
+    }, [socket, amIArtist]);
+
+    useEffect(() => {
+        if (amIArtist) {
+            switch (tool) {
+                case Tools.Pencil: {
+                    toolPointer.current = Pointer.Pencil;
+                    break;
+                }
+                case Tools.Eraser: {
+                    toolPointer.current = Pointer.Eraser;
+                    break;
+                }
+                case Tools.Rectangle:
+                case Tools.Circle: {
+                    toolPointer.current = Pointer.Crosshair;
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }, [tool, amIArtist]);
+
+
+
+
+
+    // Function to add new Drawing
+    function addNewDrawing(pos, tool) {
+        // console.log('New drawing');
         switch (tool) {
             case Tools.Pencil: {
                 const newLine = {
@@ -162,8 +266,15 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                     points: [pos.x, pos.y],
                     strokeColor: strokeColor,
                     strokeWidth: strokeWidth
-                }
-                setHistory([...history, newLine]);
+                };
+                const newLineClone = {
+                    type: Tools.Pencil,
+                    points: [pos.x, pos.y],
+                    strokeColor: strokeColor,
+                    strokeWidth: strokeWidth
+                };
+                setHistory(history => [...history, newLine]);
+                bufferRef?.current.push({ action: 'add', drawing: newLineClone });
                 break;
             }
             case Tools.Eraser: {
@@ -172,7 +283,13 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                     points: [pos.x, pos.y],
                     strokeWidth: strokeWidth
                 }
-                setHistory([...history, newLine]);
+                const newLineClone = {
+                    type: Tools.Eraser,
+                    points: [pos.x, pos.y],
+                    strokeWidth: strokeWidth
+                }
+                setHistory(history => [...history, newLine]);
+                bufferRef?.current.push({ action: 'add', drawing: newLineClone });
                 break;
             }
             case Tools.Rectangle: {
@@ -186,6 +303,7 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                     y1: pos.y,
                 }
                 setHistory([...history, newRectangle]);
+                bufferRef?.current.push({ action: 'add', drawing: { ...newRectangle } });
                 break;
             }
             case Tools.Circle: {
@@ -198,35 +316,41 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                     radius: 1
                 }
                 setHistory([...history, newCircle]);
+                bufferRef?.current.push({ action: 'add', drawing: { ...newCircle } });
                 break;
             }
             default:
                 break;
         }
-    };
+        undoHistoryRef.current = [];
+    }
 
-    const handleMouseMove = (e) => {
-        if (!amIArtist) return;
-        // no drawing - skipping
-        if (!isDrawing.current) {
-            return;
-        }
-        const stage = e.target.getStage();
-        const point = stage.getPointerPosition();
-
+    // Update as mouse moves
+    function updateLastDrawing(point, tool) {
         switch (tool) {
             case Tools.Pencil: {
                 let lastLine = history[history.length - 1];
                 lastLine.points = lastLine.points.concat([point.x, point.y]);
                 history.splice(history.length - 1, 1, lastLine);
                 setHistory(history.concat());
+                // Set the buffer to send to other users
+                if (bufferRef?.current?.length === 0 || bufferRef?.current[bufferRef?.current.length - 1].action !== 'update') {
+                    bufferRef?.current?.push({ action: 'update', point: [point.x, point.y] });
+                } else {
+                    bufferRef?.current[bufferRef.current.length - 1].point.push(...[point.x, point.y]);
+                }
                 break;
             }
             case Tools.Eraser: {
-                let lastLine = history[history.length - 1];
+                let lastLine = historyRef.current[historyRef.current.length - 1];
                 lastLine.points = lastLine.points.concat([point.x, point.y]);
-                history.splice(history.length - 1, 1, lastLine);
-                setHistory(history.concat());
+                setHistory([...historyRef.current]);
+                // Set the buffer to send to other users
+                if (bufferRef?.current?.length === 0 || bufferRef?.current[bufferRef?.current.length - 1].action !== 'update') {
+                    bufferRef?.current?.push({ action: 'update', point: [point.x, point.y] });
+                } else {
+                    bufferRef?.current[bufferRef.current.length - 1].point.push(...[point.x, point.y]);
+                }
                 break;
             }
             case Tools.Rectangle: {
@@ -235,48 +359,154 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                 lastRectangle.y1 = point.y;
                 history.splice(history.length - 1, 1, lastRectangle);
                 setHistory(history.concat());
+                // Set the buffer to send to other users
+                if (bufferRef?.current?.length === 0 || bufferRef?.current[bufferRef?.current.length - 1].action !== 'update') {
+                    bufferRef?.current?.push({ action: 'update', point: [point.x, point.y] });
+                } else {
+                    bufferRef.current[bufferRef.current.length - 1].point = [point.x, point.y];
+                }
+
                 break;
             }
             case Tools.Circle: {
                 let lastCircle = history[history.length - 1];
-                lastCircle.radius = Math.abs(Math.min(point.x - lastCircle.x, point.y - lastCircle.y));
+                const radius = Math.abs(Math.min(point.x - lastCircle.x, point.y - lastCircle.y));
+                lastCircle.radius = radius;
                 history.splice(history.length - 1, 1, lastCircle);
                 setHistory(history.concat());
+                // Set the buffer to send to other users
+                if (bufferRef?.current?.length === 0 || bufferRef?.current[bufferRef?.current.length - 1].action !== 'update') {
+                    bufferRef?.current?.push({ action: 'update', radius });
+                } else {
+                    bufferRef.current[bufferRef.current.length - 1].radius = radius;
+                }
                 break;
             }
             default:
                 break;
         }
+        undoHistoryRef.current = [];
+    }
+
+
+    // Drawing handlers
+    const handleMouseDown = (e) => {
+        if (!amIArtist) return;
+        isDrawing.current = true;
+        const pos = e.target.getStage().getPointerPosition();
+        addNewDrawing(pos, tool);
     };
 
-    const handleMouseUp = () => {
+    const handleMouseMove = (e) => {
+        if (!amIArtist) return;
+        // no drawing - skipping
+        const stage = e.target.getStage();
+        const point = stage.getPointerPosition();
+        if (isDrawing.current) {
+            updateLastDrawing(point, tool);
+        }
+        // update tool location
+        toolLocation.current = { x: point.x, y: point.y };
+        setDrawingToolPointer(toolLocation?.current, toolPointer?.current);
+    };
+
+    const handleMouseUp = (e) => {
         if (!amIArtist) return;
         isDrawing.current = false;
     };
 
+    const handleMouseLeave = (e) => {
+        handleMouseUp(e);
+        // Update tool location to null
+        if (amIArtist) {
+            toolLocation.current = null;
+            setDrawingToolPointer(toolLocation?.current, toolPointer?.current);
+        }
+    }
+
+
+
+
+
+    // Undo/Redo useEffects
+
+    useEffect(() => {
+        socket.on("undo-event-to-client", () => {
+            handleUndo();
+        });
+        socket.on("redo-event-to-client", () => {
+            handleRedo();
+        });
+        return () => {
+            socket.off("undo-event-to-client");
+            socket.off("redo-event-to-client");
+        }
+    }, [socket, amIArtist])
+
+
 
     // Undo (pop from history to push into undoHistory)
-    const handleUndo = (e) => {
-        if (!amIArtist) return;
+    const handleUndo = () => {
         console.log('undo');
-        let lastShape = history.pop();
+        let lastShape = historyRef?.current.pop();
         if (lastShape) {
-            setHistory(history.concat());
-            undoHistory.push(lastShape);
-            setUndoHistory(undoHistory.concat());
+            setHistory([...historyRef?.current]);
+            undoHistoryRef.current.push(lastShape);
+            setUndoHistory([...undoHistoryRef?.current]);
         }
     }
     // Redo (pop from undoHistory to push into history)
-    const handleRedo = (e) => {
-        if (!amIArtist) return;
+    const handleRedo = () => {
         console.log('redo');
-        let lastUndoShape = undoHistory.pop();
+        let lastUndoShape = undoHistoryRef?.current.pop();
         if (lastUndoShape) {
-            setUndoHistory(undoHistory.concat());
-            history.push(lastUndoShape);
-            setHistory(history.concat());
+            setUndoHistory([...undoHistoryRef?.current]);
+            historyRef.current.push(lastUndoShape);
+            setHistory([...historyRef?.current]);
         }
     }
+
+
+    const undoEventHandler = (e) => {
+        e.preventDefault();
+        if (!amIArtist) return;
+        handleUndo();
+        if (socket && amIArtist)
+            socket.emit("undo-event-from-client");
+    }
+    const redoEventHandler = (e) => {
+        e.preventDefault();
+        if (!amIArtist) return;
+        handleRedo();
+        if (socket && amIArtist)
+            socket.emit("redo-event-from-client");
+    }
+
+
+    // TODO: create a state of pointer to improve rendering
+    function setDrawingToolPointer(location, pointerType) {
+        // console.log(location, pointerType);
+        if (drawingPointerRef?.current) {
+            if (location && location.x && location.y) {
+                drawingPointerRef.current.style.display = '';
+                drawingPointerRef.current.style.left = (location.x - 10) + 'px';
+                drawingPointerRef.current.style.top = (location.y - 10) + 'px';
+            } else {
+                drawingPointerRef.current.style.display = 'none';
+            }
+        }
+    }
+
+    // Handling Toolbar
+    const handleSetTool = (toolType) => {
+        // if (amIArtist) {
+        setTool(toolType);
+        // }
+    }
+
+
+
+
 
 
     return (
@@ -290,7 +520,8 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                     onMouseDown={handleMouseDown}
                     onMousemove={handleMouseMove}
                     onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
+                    onMouseLeave={handleMouseLeave}
+                    ref={stageRef}
                 >
                     <Layer>
                         {history.map((shape, i) => {
@@ -345,13 +576,29 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                         })}
                     </Layer>
                 </Stage>
+                <PointerDiv ref={drawingPointerRef} />
 
                 {/* Tool selector for drawing */}
                 {<Toolbox ref={toolboxRef}>
-                    <img src='/assets/pencil.svg' className={'tool ' + (tool === Tools.Pencil ? 'selectedTool' : '')} onClick={() => { setTool(Tools.Pencil) }} />
-                    <img src='/assets/eraser.svg' className={'tool ' + (tool === Tools.Eraser ? 'selectedTool' : '')} onClick={() => { setTool(Tools.Eraser) }} />
-                    <img src='/assets/rectangle.svg' className={'tool ' + (tool === Tools.Rectangle ? 'selectedTool' : '')} onClick={() => { setTool(Tools.Rectangle) }} />
-                    <img src='/assets/circle.svg' className={'tool ' + (tool === Tools.Circle ? 'selectedTool' : '')} onClick={() => { setTool(Tools.Circle) }} />
+                    <img src='/assets/pencil.svg' className={'tool ' + (tool === Tools.Pencil ? 'selectedTool' : '')} alt=''
+                        onClick={() => {
+                            handleSetTool(Tools.Pencil);
+                            // console.log(stageRef?.current?.attrs?.container?.style);
+                            // if (stageRef?.current)
+                            //     stageRef.current.attrs.container.style.cursor = 'url("/assets/cursors/pencil.svg") 0 20, auto';
+                        }} />
+                    <img src='/assets/eraser.svg' className={'tool ' + (tool === Tools.Eraser ? 'selectedTool' : '')} alt=''
+                        onClick={() => {
+                            handleSetTool(Tools.Eraser);
+                        }} />
+                    <img src='/assets/rectangle.svg' className={'tool ' + (tool === Tools.Rectangle ? 'selectedTool' : '')} alt=''
+                        onClick={() => {
+                            handleSetTool(Tools.Rectangle);
+                        }} />
+                    <img src='/assets/circle.svg' className={'tool ' + (tool === Tools.Circle ? 'selectedTool' : '')} alt=''
+                        onClick={() => {
+                            handleSetTool(Tools.Circle);
+                        }} />
                     <RangeSelector
                         type='range'
                         min={1}
@@ -359,14 +606,17 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                         value={strokeWidth}
                         onChange={(e) => { setStrokeWidth(e.target.value) }}
                     />
-                    <img src='/assets/undo.svg' className="undo" onClick={handleUndo} />
-                    <img src='/assets/redo.svg' className="redo" onClick={handleRedo} />
+                    <img src='/assets/undo.svg' className="undo" alt='' onClick={undoEventHandler} />
+                    <img src='/assets/redo.svg' className="redo" alt='' onClick={redoEventHandler} />
                 </Toolbox>}
                 {(!hasStarted && !isPublic && amIAdmin && !hasAdminConfigured && <Lobby />) || (!hasStarted && <WaitingToStart />)}
             </CanvaContainer>
         </>
     )
 }
+
+
+
 
 
 const CanvaContainer = styled.div`
@@ -439,6 +689,16 @@ const Toolbox = styled.div`
 
 const RangeSelector = styled.input`
 
+`;
+
+const PointerDiv = styled.div`
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: red;
+    pointer-events: none;
 `;
 
 export default Canva;

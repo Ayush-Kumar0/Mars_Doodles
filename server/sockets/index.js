@@ -101,20 +101,73 @@ module.exports = (io) => {
         }
 
 
-        socket.on("provide-new-history", (history, dimensions) => {
+        socket.on("provide-new-history", (drawingChanges, dimensions) => {
             if (socket.user) {
                 const email = socket.user.email;
                 if (UserPublicRoom.getUsersRoomId({ email }) && UserPublicRoom.isPlayerArtist({ email })) {
                     socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email }))
-                        .emit("get-new-history", history, dimensions);
+                        .emit("get-new-history", drawingChanges, dimensions);
                 } else if (UserPrivateRoom.getUsersRoomId({ email }) && UserPrivateRoom.isPlayerArtist({ email })) {
                     socket.broadcast.to(UserPrivateRoom.getUsersRoomId({ email }))
-                        .emit("get-new-history", history, dimensions);
+                        .emit("get-new-history", drawingChanges, dimensions);
                 }
             } else if (socket.guest) {
                 if (GuestPublicRoom.getUsersRoomId({ id: socket.id }) && GuestPublicRoom.isPlayerArtist({ id: socket.id })) {
                     socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id }))
-                        .emit("get-new-history", history, dimensions);
+                        .emit("get-new-history", drawingChanges, dimensions);
+                }
+            }
+        });
+
+        socket.on("undo-event-from-client", () => {
+            if (socket.user) {
+                const email = socket.user.email;
+                if (UserPublicRoom.getUsersRoomId({ email }) && UserPublicRoom.isPlayerArtist({ email })) {
+                    socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email }))
+                        .emit("undo-event-to-client");
+                } else if (UserPrivateRoom.getUsersRoomId({ email }) && UserPrivateRoom.isPlayerArtist({ email })) {
+                    socket.broadcast.to(UserPrivateRoom.getUsersRoomId({ email }))
+                        .emit("undo-event-to-client");
+                }
+            } else if (socket.guest) {
+                if (GuestPublicRoom.getUsersRoomId({ id: socket.id }) && GuestPublicRoom.isPlayerArtist({ id: socket.id })) {
+                    socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id }))
+                        .emit("undo-event-to-client");
+                }
+            }
+        });
+        socket.on("redo-event-from-client", () => {
+            if (socket.user) {
+                const email = socket.user.email;
+                if (UserPublicRoom.getUsersRoomId({ email }) && UserPublicRoom.isPlayerArtist({ email })) {
+                    socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email }))
+                        .emit("redo-event-to-client");
+                } else if (UserPrivateRoom.getUsersRoomId({ email }) && UserPrivateRoom.isPlayerArtist({ email })) {
+                    socket.broadcast.to(UserPrivateRoom.getUsersRoomId({ email }))
+                        .emit("redo-event-to-client");
+                }
+            } else if (socket.guest) {
+                if (GuestPublicRoom.getUsersRoomId({ id: socket.id }) && GuestPublicRoom.isPlayerArtist({ id: socket.id })) {
+                    socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id }))
+                        .emit("redo-event-to-client");
+                }
+            }
+        });
+
+        socket.on("provide-mouse-pointer", (location, pointerType) => {
+            if (socket.user) {
+                const email = socket.user.email;
+                if (UserPublicRoom.getUsersRoomId({ email }) && UserPublicRoom.isPlayerArtist({ email })) {
+                    socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email }))
+                        .emit("get-mouse-pointer", location, pointerType);
+                } else if (UserPrivateRoom.getUsersRoomId({ email }) && UserPrivateRoom.isPlayerArtist({ email })) {
+                    socket.broadcast.to(UserPrivateRoom.getUsersRoomId({ email }))
+                        .emit("get-mouse-pointer", location, pointerType);
+                }
+            } else if (socket.guest) {
+                if (GuestPublicRoom.getUsersRoomId({ id: socket.id }) && GuestPublicRoom.isPlayerArtist({ id: socket.id })) {
+                    socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id }))
+                        .emit("get-mouse-pointer", location, pointerType);
                 }
             }
         });

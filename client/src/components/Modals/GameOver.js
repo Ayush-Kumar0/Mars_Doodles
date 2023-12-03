@@ -38,19 +38,15 @@ function GameOver({ close, currentResults, players }) {
                 <h2>Game Over</h2>
                 <table>
                     <thead>
-                        <td>
-                            <b>Position</b>
-                        </td>
-                        <td>
-                            <b>Player name</b>
-                        </td>
-                        <td>
-                            <b>Score</b>
-                        </td>
+                        <tr>
+                            <th>Position</th>
+                            <th>Player name</th>
+                            <th>Score</th>
+                        </tr>
                     </thead>
                     <tbody>
                         {playersNew.map((value, i) => {
-                            return <tr>
+                            return <tr key={i}>
                                 <td>
                                     {i + 1}
                                 </td>
