@@ -84,7 +84,7 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     // Mouse pointer states
     const toolLocation = useRef(null); // {x: , y: }
     const toolPointer = useRef(Pointer.Pencil);
-    const drawingPointerRef = useRef(null);
+    const [drawingPointerStyle, setDrawingPointerStyle] = useState({ 'display': 'none' });
 
 
     // Drawing useEffects
@@ -210,8 +210,8 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
 
     useEffect(() => {
         const interval2 = setInterval(() => {
-            console.log(toolLocation?.current, toolPointer?.current);
-            if (socket && amIArtist && toolLocation?.current) {
+            if (socket && amIArtist) {
+                // console.log(toolLocation?.current, toolPointer?.current);
                 socket.emit("provide-mouse-pointer", toolLocation?.current, toolPointer?.current);
             }
         }, 100);
@@ -486,22 +486,33 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     // TODO: create a state of pointer to improve rendering
     function setDrawingToolPointer(location, pointerType) {
         // console.log(location, pointerType);
-        if (drawingPointerRef?.current) {
-            if (location && location.x && location.y) {
-                drawingPointerRef.current.style.display = '';
-                drawingPointerRef.current.style.left = (location.x - 10) + 'px';
-                drawingPointerRef.current.style.top = (location.y - 10) + 'px';
-            } else {
-                drawingPointerRef.current.style.display = 'none';
-            }
+        if (location && location.x && location.y) {
+            const dynamicRadius = 20; // You can set your desired dynamic radius here
+            setDrawingPointerStyle({
+                display: '',
+                left: (location.x + ((pointerType === Pointer.Pencil) ? 0 : (pointerType === Pointer.Eraser) ? -dynamicRadius : -10)) + 'px',
+                top: (location.y + ((pointerType === Pointer.Pencil) ? -20 : (pointerType === Pointer.Eraser) ? -dynamicRadius : -10)) + 'px',
+                backgroundImage: (() => {
+                    if (pointerType === Pointer.Pencil)
+                        return `url('/assets/cursors/pencil.svg')`;
+                    else if (pointerType === Pointer.Crosshair)
+                        return `url('/assets/cursors/crosshair.svg')`;
+                    else if (pointerType === Pointer.Eraser) {
+                        return `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="${dynamicRadius * 2}" width="${dynamicRadius * 2}"><circle cx="${dynamicRadius}" cy="${dynamicRadius}" r="${dynamicRadius - 0.1}" fill="white" stroke="black" stroke-width="0.1"/></svg>')`;
+                    } else
+                        return ``;
+                })(),
+            });
+        } else {
+            // setDrawingPointerStyle({
+            //     display: 'none',
+            // });
         }
     }
 
     // Handling Toolbar
     const handleSetTool = (toolType) => {
-        // if (amIArtist) {
         setTool(toolType);
-        // }
     }
 
 
@@ -576,7 +587,7 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                         })}
                     </Layer>
                 </Stage>
-                <PointerDiv ref={drawingPointerRef} />
+                <PointerDiv style={drawingPointerStyle} />
 
                 {/* Tool selector for drawing */}
                 {<Toolbox ref={toolboxRef}>
@@ -692,12 +703,13 @@ const RangeSelector = styled.input`
 `;
 
 const PointerDiv = styled.div`
-    width: 20px;
-    height: 20px;
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
     position: absolute;
     top: 0;
     left: 0;
-    background-color: red;
+    /* background-color: red; */
     pointer-events: none;
 `;
 
