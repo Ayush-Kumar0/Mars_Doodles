@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { Stage, Layer, Line, Rect, Circle } from 'react-konva';
 import WaitingToStart from '../Loader/WaitingToStart';
 import Lobby from '../Loader/Lobby';
+import { HexColorPicker } from 'react-colorful';
 
 const Tools = Object.freeze({
     Pencil: 1,
@@ -17,6 +18,7 @@ const Pointer = Object.freeze({
     Crosshair: 3,
 });
 
+const eraserMultiplier = 5;
 
 function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGuest, amIArtistParent, waitingForNewArtist }) {
     // For dimensions of canvas
@@ -74,7 +76,9 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     // Drawing states
     const [tool, setTool] = React.useState(Tools.Pencil);
     const [strokeWidth, setStrokeWidth] = useState(2);
-    const [strokeColor, setStrokeColor] = useState("#df4b26");
+    const [strokeColor, setStrokeColor] = useState("#000000");
+    const [colorPickerState, setColorPickerState] = useState(false);
+    const hexColorPickerRef = useRef(null);
     const isDrawing = React.useRef(false);
     const [history, setHistory] = useState([]); // Use it like a linear list of operations
     const [undoHistory, setUndoHistory] = useState([]); // Use it like a stack
@@ -83,7 +87,7 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     const bufferRef = useRef([]);
     // Mouse pointer states
     const toolLocation = useRef(null); // {x: , y: }
-    const toolPointer = useRef(Pointer.Pencil);
+    const toolPointer = useRef({ type: Pointer.Pencil }); // {type: , size: }
     const [drawingPointerStyle, setDrawingPointerStyle] = useState({ 'display': 'none' });
 
 
@@ -234,23 +238,23 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
         if (amIArtist) {
             switch (tool) {
                 case Tools.Pencil: {
-                    toolPointer.current = Pointer.Pencil;
+                    toolPointer.current = { type: Pointer.Pencil };
                     break;
                 }
                 case Tools.Eraser: {
-                    toolPointer.current = Pointer.Eraser;
+                    toolPointer.current = { type: Pointer.Eraser, size: strokeWidth * eraserMultiplier };
                     break;
                 }
                 case Tools.Rectangle:
                 case Tools.Circle: {
-                    toolPointer.current = Pointer.Crosshair;
+                    toolPointer.current = { type: Pointer.Crosshair };
                     break;
                 }
                 default:
                     break;
             }
         }
-    }, [tool, amIArtist]);
+    }, [tool, amIArtist, strokeWidth]);
 
 
 
@@ -281,12 +285,12 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                 const newLine = {
                     type: Tools.Eraser,
                     points: [pos.x, pos.y],
-                    strokeWidth: strokeWidth
+                    strokeWidth: strokeWidth * eraserMultiplier
                 }
                 const newLineClone = {
                     type: Tools.Eraser,
                     points: [pos.x, pos.y],
-                    strokeWidth: strokeWidth
+                    strokeWidth: strokeWidth * eraserMultiplier
                 }
                 setHistory(history => [...history, newLine]);
                 bufferRef?.current.push({ action: 'add', drawing: newLineClone });
@@ -485,28 +489,28 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
 
     // TODO: create a state of pointer to improve rendering
     function setDrawingToolPointer(location, pointerType) {
-        // console.log(location, pointerType);
-        if (location && location.x && location.y) {
-            const dynamicRadius = 20; // You can set your desired dynamic radius here
+        console.log(location);
+        if (location && location.x && location.y && pointerType && pointerType.type) {
+            const dynamicRadius = pointerType.size / 2 || 10; // You can set your desired dynamic radius here
             setDrawingPointerStyle({
                 display: '',
-                left: (location.x + ((pointerType === Pointer.Pencil) ? 0 : (pointerType === Pointer.Eraser) ? -dynamicRadius : -10)) + 'px',
-                top: (location.y + ((pointerType === Pointer.Pencil) ? -20 : (pointerType === Pointer.Eraser) ? -dynamicRadius : -10)) + 'px',
+                left: (location.x + ((pointerType.type === Pointer.Pencil) ? 0 : (pointerType.type === Pointer.Eraser) ? -dynamicRadius : -10)) + 'px',
+                top: (location.y + ((pointerType.type === Pointer.Pencil) ? -20 : (pointerType.type === Pointer.Eraser) ? -dynamicRadius : -10)) + 'px',
                 backgroundImage: (() => {
-                    if (pointerType === Pointer.Pencil)
+                    if (pointerType.type === Pointer.Pencil)
                         return `url('/assets/cursors/pencil.svg')`;
-                    else if (pointerType === Pointer.Crosshair)
+                    else if (pointerType.type === Pointer.Crosshair)
                         return `url('/assets/cursors/crosshair.svg')`;
-                    else if (pointerType === Pointer.Eraser) {
+                    else if (pointerType.type === Pointer.Eraser) {
                         return `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="${dynamicRadius * 2}" width="${dynamicRadius * 2}"><circle cx="${dynamicRadius}" cy="${dynamicRadius}" r="${dynamicRadius - 0.1}" fill="white" stroke="black" stroke-width="0.1"/></svg>')`;
                     } else
                         return ``;
                 })(),
             });
         } else {
-            // setDrawingPointerStyle({
-            //     display: 'none',
-            // });
+            setDrawingPointerStyle({
+                display: 'none',
+            });
         }
     }
 
@@ -514,6 +518,24 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     const handleSetTool = (toolType) => {
         setTool(toolType);
     }
+
+
+    // Mouse click outside color picker
+    useEffect(() => {
+        const mouseOutEvent = (e) => {
+            if (colorPickerState) {
+                const ele1 = document.getElementsByClassName('hex-color-picker')[0];
+                const ele2 = document.getElementsByClassName('color-pick-btn')[0];
+                if (ele1 && !ele1.contains(e.target) && ele2 && !ele2.contains(e.target)) {
+                    setColorPickerState(false);
+                }
+            }
+        }
+        document.body.addEventListener('mousedown', mouseOutEvent);
+        return () => {
+            document.body.removeEventListener('mousedown', mouseOutEvent);
+        }
+    }, [colorPickerState]);
 
 
 
@@ -591,12 +613,15 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
 
                 {/* Tool selector for drawing */}
                 {<Toolbox ref={toolboxRef}>
+                    <ColorPickDiv>
+                        <HexColorPicker className='hex-color-picker' color={strokeColor} onChange={setStrokeColor}
+                            style={{ visibility: (colorPickerState === true) ? 'visible' : 'hidden' }}
+                        />
+                        <ColorPickBtn className='color-pick-btn' strokecolor={strokeColor} onClick={() => { setColorPickerState(state => !state) }}>{strokeColor}</ColorPickBtn>
+                    </ColorPickDiv>
                     <img src='/assets/pencil.svg' className={'tool ' + (tool === Tools.Pencil ? 'selectedTool' : '')} alt=''
                         onClick={() => {
                             handleSetTool(Tools.Pencil);
-                            // console.log(stageRef?.current?.attrs?.container?.style);
-                            // if (stageRef?.current)
-                            //     stageRef.current.attrs.container.style.cursor = 'url("/assets/cursors/pencil.svg") 0 20, auto';
                         }} />
                     <img src='/assets/eraser.svg' className={'tool ' + (tool === Tools.Eraser ? 'selectedTool' : '')} alt=''
                         onClick={() => {
@@ -639,6 +664,7 @@ const CanvaContainer = styled.div`
     min-height: calc(100vh - var(--topbar-height));
     position: relative;
     padding-bottom: var(--toolbox-height);
+    overflow: hidden;
     @media (max-width:720px) {
         order: -1;
         width: 100vw;
@@ -695,6 +721,39 @@ const Toolbox = styled.div`
             transform: scale(1);
         }
     }
+`;
+
+const ColorPickDiv = styled.div`
+    height: 100%;
+    position: relative;
+    .hex-color-picker {
+        height: 150px;
+        width: 150px;
+        position: absolute;
+        z-index: 2;
+        top: -150px;
+        left: 0px;
+        .react-colorful__saturation {
+            border-bottom: none;
+        }
+    }
+`;
+
+const ColorPickBtn = styled.button.attrs(props => ({
+    style: {
+        backgroundColor: props.strokecolor,
+    },
+}))`
+    border-radius: 7px;
+    height: 70%;
+    min-width: 70px;
+    border: 1px solid white;
+    color: white;
+    margin-right: 4px;
+    position: relative;
+    top: 15%;
+    right: 0px;
+    z-index: 2;
 `;
 
 
