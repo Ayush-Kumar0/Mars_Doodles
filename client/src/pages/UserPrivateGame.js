@@ -66,7 +66,7 @@ function UserPrivateGame() {
             setWord(result.hiddenWord);
             setHasStarted(result.hasStarted);
             setHasAdminConfigured(result.hasAdminConfigured);
-            setRound(result.roundsCompleted);
+            setRound(result.roundsCompleted + 1);
             let scoreObj = {};
             for (let plr of result.players) {
                 scoreObj[plr.id] = plr.score;
@@ -225,6 +225,11 @@ function UserPrivateGame() {
         // When a player leaves the room
         socket.on("provide-private-player-left", (result) => {
             setPlayers(prevPlayers => prevPlayers.filter(pl => pl.id !== result.id));
+            setCurrentResults(prevResults => {
+                const updatedResults = Object.create(prevResults);
+                updatedResults[result.id] = 0;
+                return updatedResults;
+            });
         });
 
         return () => {

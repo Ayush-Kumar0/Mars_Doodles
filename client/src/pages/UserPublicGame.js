@@ -61,7 +61,7 @@ function UserPublicGame() {
                 setAmIArtist(false);
             setWord(result.hiddenWord);
             setHasStarted(result.hasStarted);
-            setRound(result.roundsCompleted);
+            setRound(result.roundsCompleted + 1);
             let scoreObj = {};
             for (let plr of result.players) {
                 scoreObj[plr.id] = plr.score;
@@ -194,6 +194,11 @@ function UserPublicGame() {
         // When a player leaves the room
         socket.on("provide-public-player-left", (result) => {
             setPlayers(prevPlayers => prevPlayers.filter(pl => pl.id !== result.id));
+            setCurrentResults(prevResults => {
+                const updatedResults = Object.create(prevResults);
+                updatedResults[result.id] = 0;
+                return updatedResults;
+            });
         });
 
         return () => {

@@ -25,7 +25,7 @@ function GameOver({ close, currentResults, players }) {
     useEffect(() => {
         console.log(currentResults);
         const newPlayers = players.map(value => {
-            value.score = currentResults[value.id] || 0;
+            value.score = currentResults[value.id].toFixed(0) || 0;
             return value;
         });
         sortByProperty(newPlayers, 'score');
