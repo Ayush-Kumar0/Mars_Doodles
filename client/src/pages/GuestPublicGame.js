@@ -19,6 +19,7 @@ function GuestPublicGame() {
     const [artist, setArtist] = useState(null);
     const [word, setWord] = useState('');
     const [players, setPlayers] = useState([]); // Current scores are also present in it
+    const canvaRef = useRef();
     // Accessible to the artist only
     const [wasIArtist, setWasIArtist] = useState(false);
     const [amIArtist, setAmIArtist] = useState(false);
@@ -230,11 +231,16 @@ function GuestPublicGame() {
         }
     }
 
+    const exportImage = (e) => {
+        canvaRef.current.exportImage();
+    }
+
     return (
         <>
             <GameContainer>
                 <Topbar>
                     <Leave onClick={exitRoom}><img src='/assets/exit_room.svg' /></Leave>
+                    <ExportToImage onClick={exportImage}><img src='/assets/export_image.svg' /></ExportToImage>
                     <span>{fullWord ? fullWord : word}</span>
                     {isGameOver ? <span className='timer'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={publicRoom?.totalRounds} />}                </Topbar>
                 <GamePlayers artistPlayer={artist} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest}></GamePlayers>
@@ -244,6 +250,7 @@ function GuestPublicGame() {
                     isPublic={true}
                     socket={socket}
                     waitingForNewArtist={waitingForNewArtist}
+                    ref={canvaRef}
                 ></Canva>
                 <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist} isChatEnabledParent={true}></Chatbox>
             </GameContainer>
@@ -304,8 +311,8 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
 
     return (
         <span className={className}>
-            <span>
-                {roundsCompleted !== 0 ? `Round: ${roundsCompleted}/${totalRounds}` : ''}
+            <span style={{ fontSize: '10px', letterSpacing: '1px' }}>
+                {roundsCompleted !== 0 ? `Round:${roundsCompleted}/${totalRounds}` : ''}
             </span>
             &nbsp;
             {getTime(time)}
@@ -360,6 +367,20 @@ const Leave = styled.button`
     position: absolute;
     left: 5px;
     rotate: 180deg;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    img {
+        stroke: white;
+    }
+    cursor: pointer;
+`;
+
+const ExportToImage = styled.button`
+    position: absolute;
+    left: 35px;
     background: transparent;
     border: none;
     display: flex;

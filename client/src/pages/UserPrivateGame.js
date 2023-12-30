@@ -19,6 +19,7 @@ function UserPrivateGame() {
     const [artist, setArtist] = useState(null);
     const [word, setWord] = useState('');
     const [players, setPlayers] = useState([]); // Current scores are also present in it
+    const canvaRef = useRef();
     // Admin
     const [admin, setAdmin] = useState(null);
     // Accessible to the artist only
@@ -279,11 +280,16 @@ function UserPrivateGame() {
         navigator.clipboard.writeText(privateRoom?.shortid);
     }
 
+    const exportImage = (e) => {
+        canvaRef.current.exportImage();
+    }
+
     return (
         <>
             <GameContainer>
                 <Topbar>
                     <Leave onClick={exitRoom}><img className='leavebuttonimg' src='/assets/exit_room.svg' /></Leave>
+                    <ExportToImage onClick={exportImage}><img className='leavebuttonimg' src='/assets/exit_room.svg' /></ExportToImage>
                     <ShareId>{privateRoom?.shortid}{privateRoom?.shortid && <img className='clipboard' src='/assets/copy_to_clipboard.svg' onClick={copyToClipboard} />}</ShareId>
                     <span className='givenword'>{fullWord ? fullWord : word}</span>
                     {isGameOver ? <span className='timer'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={privateRoom?.totalRounds} />}
@@ -298,6 +304,7 @@ function UserPrivateGame() {
                     amIArtistParent={amIArtist}
                     socket={socket}
                     waitingForNewArtist={waitingForNewArtist}
+                    ref={canvaRef}
                 ></Canva>
                 <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist} isPrivate={true} isChatEnabledParent={privateRoom?.isChatEnabled}></Chatbox>
             </GameContainer>
@@ -358,7 +365,7 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
 
     return (
         <span className={className}>
-            <span>
+            <span style={{ fontSize: '10px', letterSpacing: '1px' }}>
                 {roundsCompleted !== 0 ? `Round: ${roundsCompleted}/${totalRounds}` : ''}
             </span>
             &nbsp;
@@ -418,6 +425,20 @@ const Leave = styled.button`
     position: absolute;
     left: 5px;
     rotate: 180deg;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    img {
+        stroke: white;
+    }
+    cursor: pointer;
+`;
+
+const ExportToImage = styled.button`
+    position: absolute;
+    left: 35px;
     background: transparent;
     border: none;
     display: flex;

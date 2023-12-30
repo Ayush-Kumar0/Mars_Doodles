@@ -112,6 +112,7 @@ const PlayersContainer = styled.div`
                 width: calc(100% - 42px);
                 word-wrap: break-word;
                 word-break: break-all;
+                font-size: small;
             }
 
             .score {

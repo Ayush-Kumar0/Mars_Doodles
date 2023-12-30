@@ -19,6 +19,7 @@ function UserPublicGame() {
     const [artist, setArtist] = useState(null);
     const [word, setWord] = useState('');
     const [players, setPlayers] = useState([]); // Current scores are also present in it
+    const canvaRef = useRef();
     // Accessible to the artist only
     const [wasIArtist, setWasIArtist] = useState(false);
     const [amIArtist, setAmIArtist] = useState(false);
@@ -234,11 +235,16 @@ function UserPublicGame() {
         }
     }
 
+    const exportImage = (e) => {
+        canvaRef.current.exportImage();
+    }
+
     return (
         <>
             <GameContainer>
                 <Topbar>
                     <Leave onClick={exitRoom}><img src='/assets/exit_room.svg' /></Leave>
+                    <ExportToImage onClick={exportImage}><img src='/assets/exit_room.svg' /></ExportToImage>
                     <span>{fullWord ? fullWord : word}</span>
                     {isGameOver ? <span className='timer'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={publicRoom?.totalRounds} />}
                 </Topbar>
@@ -249,6 +255,7 @@ function UserPublicGame() {
                     socket={socket}
                     amIArtistParent={amIArtist}
                     waitingForNewArtist={waitingForNewArtist}
+                    ref={canvaRef}
                 ></Canva>
                 <Chatbox socket={socket} userGuest={userGuest} handleScoreStorage={handleScoreStorage} amIArtistParent={amIArtist} isChatEnabledParent={true}></Chatbox>
             </GameContainer>
@@ -309,7 +316,7 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
 
     return (
         <span className={className}>
-            <span>
+            <span style={{ fontSize: '10px', letterSpacing: '1px' }}>
                 {roundsCompleted !== 0 ? `Round: ${roundsCompleted}/${totalRounds}` : ''}
             </span>
             &nbsp;
@@ -365,6 +372,20 @@ const Leave = styled.button`
     position: absolute;
     left: 5px;
     rotate: 180deg;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    img {
+        stroke: white;
+    }
+    cursor: pointer;
+`;
+
+const ExportToImage = styled.button`
+    position: absolute;
+    left: 35px;
     background: transparent;
     border: none;
     display: flex;

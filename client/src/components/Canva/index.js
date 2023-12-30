@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import styled from 'styled-components';
-import { Stage, Layer, Line, Rect, Circle, Ellipse } from 'react-konva';
+import { Stage, Layer, Line, Rect, Ellipse } from 'react-konva';
 import WaitingToStart from '../Loader/WaitingToStart';
 import Lobby from '../Loader/Lobby';
 import { HexColorPicker } from 'react-colorful';
@@ -20,7 +20,7 @@ const Pointer = Object.freeze({
 
 const eraserMultiplier = 5;
 
-function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGuest, amIArtistParent, waitingForNewArtist }) {
+const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGuest, amIArtistParent, waitingForNewArtist }, ref) => {
     // For dimensions of canvas
     const containerRef = useRef();
     const toolboxRef = useRef();
@@ -545,6 +545,20 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     }, [colorPickerState]);
 
 
+    // Export the image to system
+    useImperativeHandle(ref, () => ({
+        exportImage: () => {
+            const stage = stageRef.current.getStage();
+            const dataURL = stage.toDataURL();
+            const downloadLink = document.createElement('a');
+            downloadLink.href = dataURL;
+            downloadLink.download = 'stage_export.png';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    }), []);
+
 
 
 
@@ -564,6 +578,14 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                     ref={stageRef}
                 >
                     <Layer>
+                        <Rect
+                            x={0}
+                            y={0}
+                            width={dimensions.width}
+                            height={dimensions.height}
+                            fill='white'
+                            key={-1}
+                        />
                         {history.map((shape, i) => {
                             switch (shape.type) {
                                 case Tools.Pencil:
@@ -657,7 +679,7 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
             </CanvaContainer>
         </>
     )
-}
+});
 
 
 
