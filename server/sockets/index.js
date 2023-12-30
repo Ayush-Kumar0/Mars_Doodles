@@ -154,20 +154,20 @@ module.exports = (io) => {
             }
         });
 
-        socket.on("provide-mouse-pointer", (location, pointerType) => {
+        socket.on("provide-mouse-pointer", (location, pointerType, dimensions) => {
             if (socket.user) {
                 const email = socket.user.email;
                 if (UserPublicRoom.getUsersRoomId({ email }) && UserPublicRoom.isPlayerArtist({ email })) {
                     socket.broadcast.to(UserPublicRoom.getUsersRoomId({ email }))
-                        .emit("get-mouse-pointer", location, pointerType);
+                        .emit("get-mouse-pointer", location, pointerType, dimensions);
                 } else if (UserPrivateRoom.getUsersRoomId({ email }) && UserPrivateRoom.isPlayerArtist({ email })) {
                     socket.broadcast.to(UserPrivateRoom.getUsersRoomId({ email }))
-                        .emit("get-mouse-pointer", location, pointerType);
+                        .emit("get-mouse-pointer", location, pointerType, dimensions);
                 }
             } else if (socket.guest) {
                 if (GuestPublicRoom.getUsersRoomId({ id: socket.id }) && GuestPublicRoom.isPlayerArtist({ id: socket.id })) {
                     socket.broadcast.to(GuestPublicRoom.getUsersRoomId({ id: socket.id }))
-                        .emit("get-mouse-pointer", location, pointerType);
+                        .emit("get-mouse-pointer", location, pointerType, dimensions);
                 }
             }
         });

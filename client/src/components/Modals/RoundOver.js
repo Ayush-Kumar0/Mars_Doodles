@@ -25,7 +25,10 @@ function RoundOver({ close, currentRoundScore, players }) {
     useEffect(() => {
         console.log(currentRoundScore);
         const newPlayers = players.map(value => {
-            value.score = currentRoundScore[value.id].toFixed(0) || 0;
+            if (currentRoundScore[value.id] && !Number.isNaN(currentRoundScore[value.id]))
+                value.score = currentRoundScore[value.id].toFixed(0) || 0;
+            else
+                value.score = 0;
             return value;
         });
         sortByProperty(newPlayers, 'score');

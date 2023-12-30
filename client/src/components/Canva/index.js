@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components';
-import { Stage, Layer, Line, Rect, Circle } from 'react-konva';
+import { Stage, Layer, Line, Rect, Circle, Ellipse } from 'react-konva';
 import WaitingToStart from '../Loader/WaitingToStart';
 import Lobby from '../Loader/Lobby';
 import { HexColorPicker } from 'react-colorful';
@@ -9,7 +9,7 @@ const Tools = Object.freeze({
     Pencil: 1,
     Eraser: 2,
     Rectangle: 3,
-    Circle: 4
+    Ellipse: 4,
 });
 
 const Pointer = Object.freeze({
@@ -78,7 +78,6 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
     const [strokeWidth, setStrokeWidth] = useState(2);
     const [strokeColor, setStrokeColor] = useState("#000000");
     const [colorPickerState, setColorPickerState] = useState(false);
-    const hexColorPickerRef = useRef(null);
     const isDrawing = React.useRef(false);
     const [history, setHistory] = useState([]); // Use it like a linear list of operations
     const [undoHistory, setUndoHistory] = useState([]); // Use it like a stack
@@ -111,51 +110,32 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
         socket?.on("get-new-history", (drawingChanges, originalDimensions) => {
             const scaleX = dimensions.width / originalDimensions.width;
             const scaleY = dimensions.height / originalDimensions.height;
-            // history = history.map((value) => {
-            //     switch (value.type) {
-            //         case Tools.Pencil: {
-            //             value.points = value.points.map((value, i) => {
-            //                 if (i % 2 === 0)
-            //                     value *= scaleX;
-            //                 else
-            //                     value *= scaleY;
-            //                 return value;
-            //             });
-            //             break;
-            //         }
-            //         case Tools.Eraser: {
-            //             value.points = value.points.map((value, i) => {
-            //                 if (i % 2 === 0)
-            //                     value *= scaleX;
-            //                 else
-            //                     value *= scaleY;
-            //                 return value;
-            //             });
-            //             break;
-            //         }
-            //         case Tools.Rectangle: {
-            //             value.x0 *= scaleX;
-            //             value.y0 *= scaleY;
-            //             value.x1 *= scaleX;
-            //             value.y1 *= scaleY;
-            //             break;
-            //         }
-            //         case Tools.Circle: {
-            //             value.x *= scaleX;
-            //             value.y *= scaleY;
-            //             value.radius *= Math.min(scaleX, scaleY);
-            //             break;
-            //         }
-            //         default:
-            //             break;
-            //     }
-            //     return value;
-            // });
 
             drawingChanges.forEach((value) => {
                 switch (value?.action) {
                     case 'add': {
                         // TODO: Scaling
+                        switch (value.drawing.type) {
+                            case Tools.Pencil:
+                            case Tools.Eraser:
+                                value.drawing.points = value?.drawing?.points?.map((pnt, i) => {
+                                    if (i % 2 === 0) return Math.floor(pnt * scaleX);
+                                    else return Math.floor(pnt * scaleY);
+                                });
+                                break;
+                            case Tools.Rectangle:
+                                value.drawing.x0 = value.drawing.x0 * scaleX;
+                                value.drawing.y0 = value.drawing.y0 * scaleY;
+                                value.drawing.x1 = value.drawing.x0;
+                                value.drawing.y1 = value.drawing.y0;
+                                break;
+                            case Tools.Ellipse:
+                                value.drawing.x = value.drawing.x * scaleX;
+                                value.drawing.y = value.drawing.y * scaleY;
+                                break;
+                            default:
+                                break;
+                        }
                         historyRef?.current.push(value?.drawing);
                         break;
                     }
@@ -164,25 +144,39 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                         switch (lastDrawing?.type) {
                             case Tools.Pencil: {
                                 // TODO: Scale value.point
+                                value.point = value?.point?.map((pnt, i) => {
+                                    if (i % 2 === 0) return Math.floor(pnt * scaleX);
+                                    else return Math.floor(pnt * scaleY);
+                                });
                                 lastDrawing.points = lastDrawing?.points.concat(Array.from(value.point));
                                 break;
                             }
                             case Tools.Eraser: {
                                 // TODO: Scale value.point
+                                value.point = value?.point?.map((pnt, i) => {
+                                    if (i % 2 === 0) return Math.floor(pnt * scaleX);
+                                    else return Math.floor(pnt * scaleY);
+                                });
                                 lastDrawing.points = lastDrawing?.points.concat(Array.from(value.point));
                                 break;
                             }
                             case Tools.Rectangle: {
-                                // TODO: Scale value.point
+                                // TODO: Scale endpoints
+                                value.point = value?.point?.map((pnt, i) => {
+                                    if (i % 2 === 0) return Math.floor(pnt * scaleX);
+                                    else return Math.floor(pnt * scaleY);
+                                });
                                 const point = Array.from(value.point);
                                 lastDrawing.x1 = point[0];
                                 lastDrawing.y1 = point[1];
                                 break;
                             }
-                            case Tools.Circle: {
-                                // TODO: Scale value.point
-                                const radius = value.radius;
-                                lastDrawing.radius = radius;
+                            case Tools.Ellipse: {
+                                // TODO: Scale radius
+                                const radiusX = value.radiusX * scaleX;
+                                const radiusY = value.radiusY * scaleY;
+                                lastDrawing.radiusX = radiusX;
+                                lastDrawing.radiusY = radiusY;
                                 break;
                             }
                             default:
@@ -214,25 +208,25 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
 
     useEffect(() => {
         const interval2 = setInterval(() => {
-            if (socket && amIArtist) {
+            if (toolLocation?.current && socket && amIArtist) {
                 // console.log(toolLocation?.current, toolPointer?.current);
-                socket.emit("provide-mouse-pointer", toolLocation?.current, toolPointer?.current);
+                socket.emit("provide-mouse-pointer", toolLocation?.current, toolPointer?.current, dimensions);
             }
         }, 100);
         return () => {
             clearInterval(interval2);
         }
-    }, [socket, amIArtist]);
+    }, [socket, amIArtist, dimensions]);
 
     useEffect(() => {
-        socket?.on("get-mouse-pointer", (location, pointerType) => {
+        socket?.on("get-mouse-pointer", (location, pointerType, originalDimensions) => {
             // console.log(location, pointerType);
-            setDrawingToolPointer(location, pointerType);
+            setDrawingToolPointer(location, pointerType, originalDimensions);
         });
         return () => {
             socket?.off("get-mouse-pointer");
         }
-    }, [socket, amIArtist]);
+    }, [socket, amIArtist, dimensions]);
 
     useEffect(() => {
         if (amIArtist) {
@@ -246,7 +240,7 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                     break;
                 }
                 case Tools.Rectangle:
-                case Tools.Circle: {
+                case Tools.Ellipse: {
                     toolPointer.current = { type: Pointer.Crosshair };
                     break;
                 }
@@ -310,17 +304,18 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                 bufferRef?.current.push({ action: 'add', drawing: { ...newRectangle } });
                 break;
             }
-            case Tools.Circle: {
-                const newCircle = {
-                    type: Tools.Circle,
+            case Tools.Ellipse: {
+                const newEllipse = {
+                    type: Tools.Ellipse,
                     strokeColor: strokeColor,
                     strokeWidth: strokeWidth,
                     x: pos.x,
                     y: pos.y,
-                    radius: 1
+                    radiusX: 0,
+                    radiusY: 0,
                 }
-                setHistory([...history, newCircle]);
-                bufferRef?.current.push({ action: 'add', drawing: { ...newCircle } });
+                setHistory([...history, newEllipse]);
+                bufferRef?.current.push({ action: 'add', drawing: { ...newEllipse } });
                 break;
             }
             default:
@@ -372,17 +367,18 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
 
                 break;
             }
-            case Tools.Circle: {
-                let lastCircle = history[history.length - 1];
-                const radius = Math.abs(Math.min(point.x - lastCircle.x, point.y - lastCircle.y));
-                lastCircle.radius = radius;
-                history.splice(history.length - 1, 1, lastCircle);
+            case Tools.Ellipse: {
+                let lastEllipse = history[history.length - 1];
+                lastEllipse.radiusX = Math.abs(point.x - lastEllipse.x);
+                lastEllipse.radiusY = Math.abs(point.y - lastEllipse.y);
+                history.splice(history.length - 1, 1, lastEllipse);
                 setHistory(history.concat());
                 // Set the buffer to send to other users
                 if (bufferRef?.current?.length === 0 || bufferRef?.current[bufferRef?.current.length - 1].action !== 'update') {
-                    bufferRef?.current?.push({ action: 'update', radius });
+                    bufferRef?.current?.push({ action: 'update', radiusX: lastEllipse.radiusX, radiusY: lastEllipse.radiusY });
                 } else {
-                    bufferRef.current[bufferRef.current.length - 1].radius = radius;
+                    bufferRef.current[bufferRef.current.length - 1].radiusX = lastEllipse.radiusX;
+                    bufferRef.current[bufferRef.current.length - 1].radiusY = lastEllipse.radiusY;
                 }
                 break;
             }
@@ -488,9 +484,20 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
 
 
     // TODO: create a state of pointer to improve rendering
-    function setDrawingToolPointer(location, pointerType) {
-        console.log(location);
-        if (location && location.x && location.y && pointerType && pointerType.type) {
+    function setDrawingToolPointer(location, pointerType, originalDimensions) {
+        if (!originalDimensions || !originalDimensions.height || !originalDimensions.width) {
+            originalDimensions = {
+                width: dimensions.width,
+                height: dimensions.height,
+            };
+        }
+        const scaleX = 1.0 * dimensions.width / originalDimensions.width;
+        const scaleY = 1.0 * dimensions.height / originalDimensions.height;
+        console.log(location, scaleX, scaleY, dimensions);
+        if (dimensions && dimensions.height && dimensions.width && location && location.x && location.y && pointerType && pointerType.type) {
+            location.x = Math.floor(location.x * scaleX);
+            location.y = Math.floor(location.y * scaleY);
+            console.log(location);
             const dynamicRadius = pointerType.size / 2 || 10; // You can set your desired dynamic radius here
             setDrawingPointerStyle({
                 display: '',
@@ -592,12 +599,13 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                                         strokeWidth={shape.strokeWidth}
                                     />
                                     break;
-                                case Tools.Circle:
-                                    return <Circle
+                                case Tools.Ellipse:
+                                    return <Ellipse
                                         key={i}
                                         x={shape.x}
                                         y={shape.y}
-                                        radius={shape.radius}
+                                        radiusX={shape.radiusX}
+                                        radiusY={shape.radiusY}
                                         stroke={shape.strokeColor}
                                         strokeWidth={shape.strokeWidth}
                                     />
@@ -631,9 +639,9 @@ function Canva({ socket, hasStarted, hasAdminConfigured, isPublic, admin, userGu
                         onClick={() => {
                             handleSetTool(Tools.Rectangle);
                         }} />
-                    <img src='/assets/circle.svg' className={'tool ' + (tool === Tools.Circle ? 'selectedTool' : '')} alt=''
+                    <img src='/assets/circle.svg' className={'tool ' + (tool === Tools.Ellipse ? 'selectedTool' : '')} alt=''
                         onClick={() => {
-                            handleSetTool(Tools.Circle);
+                            handleSetTool(Tools.Ellipse);
                         }} />
                     <RangeSelector
                         type='range'

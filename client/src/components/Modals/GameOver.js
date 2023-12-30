@@ -25,7 +25,10 @@ function GameOver({ close, currentResults, players }) {
     useEffect(() => {
         console.log(currentResults);
         const newPlayers = players.map(value => {
-            value.score = currentResults[value.id].toFixed(0) || 0;
+            if (currentResults[value.id] && !Number.isNaN(currentResults[value.id]))
+                value.score = currentResults[value.id].toFixed(0) || 0;
+            else
+                value.score = 0;
             return value;
         });
         sortByProperty(newPlayers, 'score');
