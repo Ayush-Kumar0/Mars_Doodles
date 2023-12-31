@@ -345,12 +345,13 @@ const GameContainer = styled.div`
     display: flex;
     max-width: 100vw;
     min-height: 100vh;
+    min-height: 100svh;
     align-items: center;
     justify-content: space-between;
     margin: 0px;
     padding: 0px;
     padding-top: var(--topbar-height);
-    @media (max-width:720px) {
+    @media (max-width:710px) {
         flex-wrap: wrap;
     }
 `;

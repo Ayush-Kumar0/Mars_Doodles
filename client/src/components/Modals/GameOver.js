@@ -32,7 +32,7 @@ function GameOver({ close, currentResults, players }) {
         });
         sortByProperty(newPlayers, 'score');
         setPlayersNew(newPlayers);
-    }, [players, currentResults]);
+    }, []);
     return (
         <Modal2 close={close}>
             <Container>

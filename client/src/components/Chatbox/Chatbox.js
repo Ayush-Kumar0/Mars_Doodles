@@ -124,12 +124,14 @@ const ChatBoxContainer = styled.div`
     box-sizing: border-box;
     border: 2px solid var(--primary);
     min-height: calc(100vh - var(--topbar-height));
+    min-height: calc(100svh - var(--topbar-height));
     background-color: var(--whitesmoke);
-    @media (max-width:720px) {
+    @media (max-width:710px) {
         order: 2;
         width: 55vw;
         min-height: unset;
         height: calc(50vh - var(--topbar-height));
+        height: calc(50svh - var(--topbar-height));
     }
 
     .heading {
@@ -144,6 +146,7 @@ const ChatBoxContainer = styled.div`
         height: var(--chatinput-height);
         outline: none;
         border: none;
+        box-sizing: border-box;
         border-top: 2px solid var(--primary);
         padding-left: 5px;
         padding-right: 5px;
@@ -158,10 +161,12 @@ const ChatBoxContainer = styled.div`
 
 const ChatList = styled.div`
     width: 100%;
-    height: calc(100vh - var(--topbar-height) - var(--chatinput-height) - 44px);
+    height: calc(100vh - var(--topbar-height) - var(--chatinput-height) - 45px);
+    height: calc(100svh - var(--topbar-height) - var(--chatinput-height) - 45px);
     overflow-y: auto;
-    @media (max-width:720px) {
-        height: calc(50vh - var(--topbar-height) - var(--chatinput-height) - 44px);
+    @media (max-width:710px) {
+        height: calc(50vh - var(--topbar-height) - var(--chatinput-height) - 45px);
+        height: calc(50svh - var(--topbar-height) - var(--chatinput-height) - 45px);
     }
 
     ul {
