@@ -60,6 +60,7 @@ class UserPublicRoom {
     artistEmail;
     artOverRequests;
     artStartTime;
+    artSessionTimer;
 
     hasStarted;
     isArtSessionOver;
@@ -120,6 +121,11 @@ class UserPublicRoom {
             // Partially remove the player
             this.roomPlayers.get(player.email).isPresent = false;
             this.roomSize--;
+            if (this.artistEmail === player.email) {
+                clearTimeout(this.artSessionTimer);
+                if (!this.isGameOver && this.isArtSessionOver === false)
+                    this.artSessionOver(io);
+            }
         }
         if (this.getSize() <= 1 && !this.isGameOver) {
             this.isGameOver = true;
@@ -140,8 +146,8 @@ class UserPublicRoom {
                     const calcScore = () => {
                         let timediff = Date.now() - this.artStartTime;
                         let factors = [1.69, 1.44, 1.21, 1.0];
-                        let playerScore = ((this.playerTime - timediff) / this.playerTime) * 120 + 10;
-                        let artistScore = factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore / (this.getSize() > 0 ? this.getSize() : 1);
+                        let playerScore = Math.floor(((this.playerTime - timediff) / this.playerTime) * 120 + 10);
+                        let artistScore = Math.floor(factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore / (this.getSize() > 0 ? this.getSize() : 1));
                         return [playerScore, artistScore];
                     }
                     const [playerScore, artistScore] = calcScore();
@@ -241,8 +247,12 @@ class UserPublicRoom {
             clearInterval(this.hint);
             // Provide the word to all players
             const artistSocket = io.sockets.sockets.get(this.roomPlayers.get(this.artistEmail).sid);
-            artistSocket.broadcast.to(this.id).emit("provide-public-artist-over", this.currentWord, usersInfo[this.artistEmail]);
-            artistSocket.emit("provide-public-your-turn-over");
+            if (artistSocket) {
+                artistSocket.broadcast.to(this.id).emit("provide-public-artist-over", this.currentWord, usersInfo[this.artistEmail]);
+                artistSocket.emit("provide-public-your-turn-over");
+            } else {
+                io.to(this.id).emit("provide-public-artist-over", this.currentWord, usersInfo[this.artistEmail]);
+            }
             this.artistEmail = null;
             this.currentWord = null;
             this.getReadyForNextArtSession();
@@ -291,7 +301,7 @@ class UserPublicRoom {
             this.emitToNonArtists(io);
             this.emitToArtist(io);
             this.provideHints(io);
-            setTimeout(() => {
+            this.artSessionTimer = setTimeout(() => {
                 if (!this.isGameOver && this.isArtSessionOver === false)
                     this.artSessionOver(io);
             }, this.playerTime + latencyDelay);
@@ -456,6 +466,7 @@ const serializeRoom = (player) => {
             hasStarted: room.hasStarted,
             roundsCompleted: room.roundsCompleted,
             totalRounds: room.totalRounds,
+            remainingTime: room.playerTime - (Date.now() - room.artStartTime),
         };
         return obj;
     } catch (err) {

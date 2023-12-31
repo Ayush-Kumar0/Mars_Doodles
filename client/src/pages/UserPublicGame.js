@@ -66,6 +66,9 @@ function UserPublicGame() {
             for (let plr of result.players) {
                 scoreObj[plr.id] = plr.score;
             }
+            if (result.artist && result.remainingTime > 0) {
+                setTimer(result.remainingTime);
+            }
             setCurrentResults(scoreObj);
         });
 
@@ -112,8 +115,10 @@ function UserPublicGame() {
         });
 
         socket.on("provide-public-artist-over", (completeWord, artMaker) => {
-            setArtOverModalVisible(true);
             setWasIArtist(false);
+            setArtist(null);
+            setArtOverModalVisible(true);
+            setRoundOverModalVisible(false);
             setArtOverMsg({
                 word: completeWord,
                 name: artMaker.name
@@ -121,16 +126,18 @@ function UserPublicGame() {
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
             // setTimer(publicRoom.timeBtwArtSessions);
-            setTimer(0);
+            setTimer(undefined);
         });
         socket.on("provide-public-your-turn-over", () => {
             setWasIArtist(true);
             setAmIArtist(false);
+            setArtist(null);
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
             setArtOverModalVisible(true);
+            setRoundOverModalVisible(false);
             // setTimer(publicRoom.timeBtwArtSessions);
-            setTimer(0);
+            setTimer(undefined);
         });
 
         socket.on("provide-public-round-over", (result) => {
@@ -140,7 +147,7 @@ function UserPublicGame() {
             setWaitingForNewArtist(false);
             setWaitingForNewRound(true);
             // setTimer(publicRoom.timeBtwRounds);
-            setTimer(0);
+            setTimer(undefined);
         });
 
         socket.on("provide-public-game-ended", (result) => {
@@ -295,7 +302,11 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
             }
         }
 
-        const animationFrame = requestAnimationFrame(animate);
+        let animationFrame;
+        if (timer)
+            animationFrame = requestAnimationFrame(animate);
+        else
+            setTime(timer);
 
         return () => cancelAnimationFrame(animationFrame);
     }, [timer]);
@@ -317,7 +328,7 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
                 {roundsCompleted !== 0 ? `Round: ${roundsCompleted}/${totalRounds}` : ''}
             </span>
             &nbsp;
-            {getTime(time)}
+            {timer && getTime(time)}
         </span>
     );
 }
@@ -334,12 +345,13 @@ const GameContainer = styled.div`
     display: flex;
     max-width: 100vw;
     min-height: 100vh;
+    min-height: 100svh;
     align-items: center;
     justify-content: space-between;
     margin: 0px;
     padding: 0px;
     padding-top: var(--topbar-height);
-    @media (max-width:720px) {
+    @media (max-width:710px) {
         flex-wrap: wrap;
     }
 `;

@@ -36,7 +36,7 @@ function GamePlayers({ playersParent, socket, artistPlayer, adminPlayer, userGue
                         }}>
                         <img className={'profile_picture' + ((admin?.id === player.id) ? ' admin' : '')} src={(player && player.picture) ? player.picture : '/assets/no_profile_picture.svg'} />
                         <p>{player.name}</p>
-                        <p className='score'>{currentResults[player.id] || 0}</p>
+                        <p className='score'>{Math.floor(currentResults[player.id]) || 0}</p>
                         {artist && artist.id === player.id &&
                             <img className='draw_icon' src='/assets/draw_icon.svg' />}
                     </li>);
@@ -57,13 +57,15 @@ const PlayersContainer = styled.div`
     width: var(--gameplayer-width);
     background-color: var(--whitesmoke);
     min-height: calc(100vh - var(--topbar-height));
+    min-height: calc(100svh - var(--topbar-height));
     box-sizing: border-box;
     border: 2px solid var(--primary);
-    @media (max-width:720px) {
+    @media (max-width:710px) {
         order: 1;
         width: 45vw;
         min-height: unset;
         height: calc(50vh - var(--topbar-height));
+        height: calc(50svh - var(--topbar-height));
     }
 
     .players {
@@ -79,11 +81,13 @@ const PlayersContainer = styled.div`
         margin: 0;
         height: 100%;
         max-height: calc(100vh - var(--topbar-height) - 44px);
+        max-height: calc(100svh - var(--topbar-height) - 44px);
         overflow-x: hidden;
         overflow-y: auto;
-        @media (max-width:720px) {
+        @media (max-width:710px) {
             max-height: unset;
             height: calc(100vh - var(--topbar-height) - var(--chatinput-height) - 44px);
+            height: calc(100svh - var(--topbar-height) - var(--chatinput-height) - 44px);
         }
 
         li {

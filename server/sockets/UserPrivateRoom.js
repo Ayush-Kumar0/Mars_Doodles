@@ -67,6 +67,7 @@ class UserPrivateRoom {
     artistEmail; //Email of artist
     artStartTime;
     artOverRequests;
+    artSessionTimer;
 
     hasStarted;
     hasAdminConfigured;
@@ -139,6 +140,11 @@ class UserPrivateRoom {
             // Partially remove the player
             this.roomPlayers.get(player.email).isPresent = false;
             this.roomSize--;
+            if (this.artistEmail === player.email) {
+                clearTimeout(this.artSessionTimer);
+                if (!this.isGameOver && this.isArtSessionOver === false)
+                    this.artSessionOver(io);
+            }
         }
         if (this.hasAdminConfigured && this.hasStarted && (this.getSize() <= 1 || player.email === this.adminEmail) && !this.isGameOver) {
             this.isGameOver = true;
@@ -159,8 +165,8 @@ class UserPrivateRoom {
                     const calcScore = () => {
                         let timediff = Date.now() - this.artStartTime;
                         let factors = [1.69, 1.44, 1.21, 1.0];
-                        let playerScore = ((this.playerTime - timediff) / this.playerTime) * 120 + 10;
-                        let artistScore = factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore / (this.getSize() > 0 ? this.getSize() : 1);
+                        let playerScore = Math.floor(((this.playerTime - timediff) / this.playerTime) * 120 + 10);
+                        let artistScore = Math.floor(factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore / (this.getSize() > 0 ? this.getSize() : 1));
                         return [playerScore, artistScore];
                     }
                     const [playerScore, artistScore] = calcScore();
@@ -251,8 +257,12 @@ class UserPrivateRoom {
             clearInterval(this.hint);
             // Provide the word to all players
             const artistSocket = io.sockets.sockets.get(this.roomPlayers.get(this.artistEmail).sid);
-            artistSocket.broadcast.to(this.id).emit("provide-private-artist-over", this.currentWord, usersInfo[this.artistEmail]);
-            artistSocket.emit("provide-private-your-turn-over");
+            if (artistSocket) {
+                artistSocket.broadcast.to(this.id).emit("provide-private-artist-over", this.currentWord, usersInfo[this.artistEmail]);
+                artistSocket.emit("provide-private-your-turn-over");
+            } else {
+                io.to(this.id).emit("provide-private-artist-over", this.currentWord, usersInfo[this.artistEmail]);
+            }
             this.artistEmail = null;
             this.currentWord = null;
             this.getReadyForNextArtSession();
@@ -299,7 +309,7 @@ class UserPrivateRoom {
             this.emitToNonArtists(io);
             this.emitToArtist(io);
             this.provideHints(io);
-            setTimeout(() => {
+            this.artSessionTimer = setTimeout(() => {
                 if (!this.isGameOver && this.isArtSessionOver === false)
                     this.artSessionOver(io);
             }, this.playerTime + latencyDelay);
@@ -448,6 +458,7 @@ const serializeRoom = (player) => {
             totalRounds: room.totalRounds,
             isChatEnabled: room.isChatEnabled,
             isGameOver: room.isGameOver,
+            remainingTime: room.playerTime - (Date.now() - room.artStartTime),
         };
         return obj;
     } catch (err) {

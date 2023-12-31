@@ -44,9 +44,43 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
     useEffect(() => {
         const handleResize = (e) => {
             if (containerRef && toolboxRef) {
-                setDimensions({
-                    width: containerRef.current.clientWidth,
-                    height: containerRef.current.clientHeight - toolboxRef.current.clientHeight - 2,
+                setDimensions(prevDims => {
+                    const finalDims = {
+                        width: containerRef.current.clientWidth,
+                        height: containerRef.current.clientHeight - toolboxRef.current.clientHeight - 2,
+                    };
+                    // const scaleX = 1.0 * prevDims.width / finalDims.width;
+                    // const scaleY = 1.0 * prevDims.height / finalDims.height;
+                    // // Resizing history
+                    // const newHistory = [];
+                    // historyRef?.current?.forEach(drawing => {
+                    //     switch (drawing.type) {
+                    //         case Tools.Pencil:
+                    //         case Tools.Eraser:
+                    //             drawing.points = drawing?.points?.map((pnt, i) => {
+                    //                 if (i % 2 === 0) return Math.floor(pnt * scaleX);
+                    //                 else return Math.floor(pnt * scaleY);
+                    //             });
+                    //             break;
+                    //         case Tools.Rectangle:
+                    //             drawing.x0 = drawing.x0 * scaleX;
+                    //             drawing.y0 = drawing.y0 * scaleY;
+                    //             drawing.x1 = drawing.x1 * scaleX;
+                    //             drawing.y1 = drawing.y1 * scaleY;
+                    //             break;
+                    //         case Tools.Ellipse:
+                    //             drawing.x = drawing.x * scaleX;
+                    //             drawing.y = drawing.y * scaleY;
+                    //             drawing.radiusX = drawing.radiusX * scaleX;
+                    //             drawing.radiusY = drawing.radiusY * scaleY;
+                    //             break;
+                    //         default:
+                    //             break;
+                    //     }
+
+                    // });
+                    // setHistory([...historyRef.current]);
+                    return finalDims;
                 });
             }
         }
@@ -566,6 +600,9 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
                     onMousemove={handleMouseMove}
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseLeave}
+                    onTouchStart={handleMouseDown}
+                    onTouchMove={handleMouseMove}
+                    onTouchEnd={handleMouseUp}
                     ref={stageRef}
                 >
                     <Layer>
@@ -683,22 +720,27 @@ const CanvaContainer = styled.div`
     height: 100%;
     width: 60vw;
     min-height: calc(100vh - var(--topbar-height));
+    min-height: calc(100svh - var(--topbar-height));
     position: relative;
     padding-bottom: var(--toolbox-height);
     overflow: hidden;
-    @media (max-width:720px) {
+    @media (max-width:710px) {
         order: -1;
-        width: 100vw;
+        width: 100%;
         height: 50vh;
+        height: 50svh;
         min-height: 50vh;
+        min-height: 50svh;
     }
 
     .stage {
         width: 100%;
         height: calc(100vh - var(--topbar-height) - var(--toolbox-height) - 4px);
+        height: calc(100svh - var(--topbar-height) - var(--toolbox-height) - 4px);
         overflow: hidden;
-        @media (max-width:720px) {
+        @media (max-width:710px) {
             height: calc(50vh - var(--topbar-height) - 4px);
+            height: calc(50svh - var(--topbar-height) - 4px);
         }
     }
 `;
@@ -726,6 +768,9 @@ const Toolbox = styled.div`
     }
     .undo, .redo, .tool {
         cursor: pointer;
+        @media (max-width:710px) {
+            width: 27px;
+        }
         transition: transform 0.3s ease-in;
     }
     .undo:active, .redo:active, .tool:active {
@@ -779,7 +824,9 @@ const ColorPickBtn = styled.button.attrs(props => ({
 
 
 const RangeSelector = styled.input`
-
+    @media (max-width:710px) {
+        width: 120px;
+    }
 `;
 
 const PointerDiv = styled.div`
