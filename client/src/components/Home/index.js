@@ -27,7 +27,6 @@ function Home() {
         }).then(async result => {
             setLoading(null);
             let body = await result.clone().json();
-            // console.log(body);
             if (result.status === 200) {
                 // globalize the player
                 setPlayer(body.player);

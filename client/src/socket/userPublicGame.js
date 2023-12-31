@@ -20,7 +20,7 @@ class UserPublicGame {
     eventListeners() {
         // Event listeners
         this.socket.on("provide-public-room", (isAvailable, message) => {
-            console.log(isAvailable);
+            // console.log(isAvailable);
             if (isAvailable && this.socket)
                 this.nav(`public/`);
             else if (!isAvailable && message) {

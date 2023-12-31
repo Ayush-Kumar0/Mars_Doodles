@@ -45,7 +45,6 @@ function Lobby() {
             socket.emit("get-start-private-room", options);
         } else {
             toast.error("Network error");
-            console.log('Connectivity problem');
         }
     }
 

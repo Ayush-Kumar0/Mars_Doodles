@@ -14,20 +14,20 @@ class Connection {
         const socket = this.socket;
         if (socket) {
             socket.on('connect', () => {
-                console.log(socket.id, 'connected');
+                // console.log(socket.id, 'connected');
             });
         } else {
-            console.log('Null socket');
+            // console.log('Null socket');
         }
     }
     closeConnection() {
         const socket = this.socket;
         if (socket) {
-            console.log('Connection closed');
+            // console.log('Connection closed');
             socket.disconnect();
         }
         else {
-            console.log('Null socket');
+            // console.log('Null socket');
         }
     }
 }

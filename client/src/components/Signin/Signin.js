@@ -35,7 +35,6 @@ function Signin() {
         }).then(async result => {
             setLoading(null);
             let body = await result.clone().json();
-            // console.log(body);
             if (result.status === 200) {
                 // globalize the player
                 setPlayer(body.player);
@@ -57,7 +56,6 @@ function Signin() {
 
     const googleSigninSucess = (res) => {
         setLoading('visible');
-        console.log(res);
         fetch(`${process.env.REACT_APP_SERVER_URL}/auth/googlesignin`, {
             method: 'post',
             body: JSON.stringify({ clientId: res.clientId, credential: res.credential }),
@@ -68,7 +66,6 @@ function Signin() {
         }).then(async result => {
             setLoading(null);
             let body = await result.clone().json();
-            console.log(body);
             if (result.status === 200) {
                 // globalize the player
                 setPlayer(body.player);

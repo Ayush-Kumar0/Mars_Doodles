@@ -4,7 +4,6 @@ import styled from 'styled-components';
 
 function ArtSessionOver({ close, artOverMsg, wasIArtist }) {
     useEffect(() => {
-        console.log(wasIArtist);
     }, [wasIArtist])
 
     return (

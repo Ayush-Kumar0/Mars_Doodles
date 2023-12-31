@@ -27,7 +27,6 @@ function User() {
 
     const changeNameHandler = (name, setName) => {
         setLoading(true)
-        console.log(name);
         // Change player name in server
         fetch(`${process.env.REACT_APP_SERVER_URL}/user/changename`, {
             method: 'post',
@@ -39,7 +38,6 @@ function User() {
         }).then(async result => {
             const body = await result.clone().json();
             setLoading(false);
-            console.log(body);
             if (result.status === 200) {
                 body.user && body.user.name && setPlayer(body);
             } else {
@@ -80,7 +78,6 @@ function User() {
         e.preventDefault();
         if (roomidRef && roomidRef.current && roomidRef.current.value) {
             const roomid = roomidRef.current.value;
-            console.log(roomid);
             const userPrivateGame = new UserPrivateGame(nav, toast, setSocket);
             userPrivateGame.joinRoom(roomid);
         } else {

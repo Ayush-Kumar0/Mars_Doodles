@@ -41,7 +41,6 @@ function AuthState(props) {
     }, []);
 
     useEffect(() => {
-        console.log(player);
     }, [player]);
 
     const setPlayer = (player) => {

@@ -141,7 +141,7 @@ class UserPublicRoom {
                         let timediff = Date.now() - this.artStartTime;
                         let factors = [1.69, 1.44, 1.21, 1.0];
                         let playerScore = ((this.playerTime - timediff) / this.playerTime) * 120 + 10;
-                        let artistScore = factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore;
+                        let artistScore = factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore / (this.getSize() > 0 ? this.getSize() : 1);
                         return [playerScore, artistScore];
                     }
                     const [playerScore, artistScore] = calcScore();

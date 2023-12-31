@@ -23,7 +23,6 @@ function sortByProperty(arr, prop, descending = true) {
 function GameOver({ close, currentResults, players }) {
     const [playersNew, setPlayersNew] = useState(players);
     useEffect(() => {
-        console.log(currentResults);
         const newPlayers = players.map(value => {
             if (currentResults[value.id] && !Number.isNaN(currentResults[value.id]))
                 value.score = currentResults[value.id].toFixed(0) || 0;
@@ -33,7 +32,6 @@ function GameOver({ close, currentResults, players }) {
         });
         sortByProperty(newPlayers, 'score');
         setPlayersNew(newPlayers);
-        console.log(newPlayers);
     }, [players, currentResults]);
     return (
         <Modal2 close={close}>

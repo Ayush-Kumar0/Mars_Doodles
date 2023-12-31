@@ -48,7 +48,6 @@ function GuestPublicGame() {
         socket.emit("get-init-public-room");
 
         socket.on("provide-init-public-room", (result) => {
-            console.log(result);
             if (!result) {
                 return console.log('Server error');
             }
@@ -209,7 +208,6 @@ function GuestPublicGame() {
 
     // Score changer
     const handleScoreStorage = (player, score) => {
-        console.log(player, score);
         score = Math.floor(score);
         if (player && player.id && Number.isInteger(score)) {
             setCurrentResults(prevResults => {

@@ -23,7 +23,6 @@ function sortByProperty(arr, prop, descending = true) {
 function RoundOver({ close, currentRoundScore, players }) {
     const [playersNew, setPlayersNew] = useState(players);
     useEffect(() => {
-        console.log(currentRoundScore);
         const newPlayers = players.map(value => {
             if (currentRoundScore[value.id] && !Number.isNaN(currentRoundScore[value.id]))
                 value.score = currentRoundScore[value.id].toFixed(0) || 0;
@@ -33,7 +32,6 @@ function RoundOver({ close, currentRoundScore, players }) {
         });
         sortByProperty(newPlayers, 'score');
         setPlayersNew(newPlayers);
-        console.log(newPlayers);
     }, [players, currentRoundScore]);
     return (
         <Modal2 close={close}>

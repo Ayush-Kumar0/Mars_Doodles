@@ -18,13 +18,10 @@ function GamePlayers({ playersParent, socket, artistPlayer, adminPlayer, userGue
 
     useEffect(() => {
         setPlayers(playersParent);
-        console.log(userGuest);
-        console.log(playersParent);
     }, [playersParent, userGuest]);
 
 
     useEffect(() => {
-        console.log(currentResults);
     }, [currentResults]);
 
     return (

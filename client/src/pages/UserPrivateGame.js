@@ -51,11 +51,9 @@ function UserPrivateGame() {
         socket.emit("get-init-private-room");
 
         socket.on("provide-init-private-room", (result) => {
-            console.log(result);
             if (!result) {
                 return console.log('Server error');
             }
-            console.log(result);
             setPrivateRoom(result);
             setPlayers(result.players);
             setAdmin(result.admin);
@@ -177,7 +175,6 @@ function UserPrivateGame() {
         });
 
         socket.on("provide-removed-private-game", (message) => {
-            console.log(message);
             if (!isGameOver)
                 toast.info(message);
             socket.disconnect();
@@ -214,7 +211,6 @@ function UserPrivateGame() {
     useEffect(() => {
         // When new player joins room
         socket.on("provide-new-private-player", (result) => {
-            // console.log(initplayers, result);
             setPlayers(prevPlayers => {
                 let index = prevPlayers.findIndex((plr) => plr.id === result.id);
                 if (index === -1)
@@ -244,7 +240,6 @@ function UserPrivateGame() {
 
     // Score changer
     const handleScoreStorage = (player, score) => {
-        console.log(player, score);
         score = Math.floor(score);
         if (player && player.id && Number.isInteger(score)) {
             setCurrentResults(prevResults => {
@@ -269,7 +264,6 @@ function UserPrivateGame() {
     // Allow admin to kick any player
     const kickPlayer = (e, playerid) => {
         e.preventDefault();
-        console.log(playerid);
         // Tell server to remove the player
         if (socket)
             socket.emit("get-kick-private-player", playerid);

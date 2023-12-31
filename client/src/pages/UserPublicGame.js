@@ -48,7 +48,6 @@ function UserPublicGame() {
         socket.emit("get-init-public-room");
 
         socket.on("provide-init-public-room", (result) => {
-            console.log(result);
             if (!result) {
                 return console.log('Server error');
             }
@@ -183,7 +182,6 @@ function UserPublicGame() {
     useEffect(() => {
         // When new player joins room
         socket.on("provide-new-public-player", (result) => {
-            // console.log(initplayers, result);
             setPlayers(prevPlayers => {
                 let index = prevPlayers.findIndex((plr) => plr.id === result.id);
                 if (index === -1)
@@ -213,7 +211,6 @@ function UserPublicGame() {
 
     // Score changer
     const handleScoreStorage = (player, score) => {
-        console.log(player, score);
         score = Math.floor(score);
         if (player && player.id && Number.isInteger(score)) {
             setCurrentResults(prevResults => {

@@ -20,7 +20,7 @@ class UserPrivateGame {
     eventListeners() {
         // Event listeners
         this.socket.on("provide-private-room", (isAvailable, message) => {
-            console.log(isAvailable);
+            // console.log(isAvailable);
             if (isAvailable && this.socket)
                 this.nav(`private/`);
             else if (!isAvailable && message) {

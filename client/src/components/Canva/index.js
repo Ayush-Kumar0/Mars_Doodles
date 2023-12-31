@@ -37,7 +37,6 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
                 width: containerRef.current.clientWidth,
                 height: containerRef.current.clientHeight - toolboxRef.current.clientHeight - 2,
             });
-            console.log(containerRef.current, toolboxRef);
         }
         return () => {
         }
@@ -95,7 +94,6 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
     useEffect(() => {
         const interval1 = setInterval(() => {
             if (socket && amIArtist && bufferRef && bufferRef.current.length !== 0) {
-                // console.log(bufferRef.current);
                 socket.emit("provide-new-history", bufferRef.current, { ...dimensions });
                 bufferRef.current = [];
             }
@@ -209,7 +207,6 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
     useEffect(() => {
         const interval2 = setInterval(() => {
             if (toolLocation?.current && socket && amIArtist) {
-                // console.log(toolLocation?.current, toolPointer?.current);
                 socket.emit("provide-mouse-pointer", toolLocation?.current, toolPointer?.current, dimensions);
             }
         }, 100);
@@ -220,7 +217,6 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
 
     useEffect(() => {
         socket?.on("get-mouse-pointer", (location, pointerType, originalDimensions) => {
-            // console.log(location, pointerType);
             setDrawingToolPointer(location, pointerType, originalDimensions);
         });
         return () => {
@@ -256,7 +252,6 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
 
     // Function to add new Drawing
     function addNewDrawing(pos, tool) {
-        // console.log('New drawing');
         switch (tool) {
             case Tools.Pencil: {
                 const newLine = {
@@ -447,7 +442,6 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
 
     // Undo (pop from history to push into undoHistory)
     const handleUndo = () => {
-        console.log('undo');
         let lastShape = historyRef?.current.pop();
         if (lastShape) {
             setHistory([...historyRef?.current]);
@@ -457,7 +451,6 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
     }
     // Redo (pop from undoHistory to push into history)
     const handleRedo = () => {
-        console.log('redo');
         let lastUndoShape = undoHistoryRef?.current.pop();
         if (lastUndoShape) {
             setUndoHistory([...undoHistoryRef?.current]);
@@ -493,11 +486,9 @@ const Canva = React.forwardRef(({ socket, hasStarted, hasAdminConfigured, isPubl
         }
         const scaleX = 1.0 * dimensions.width / originalDimensions.width;
         const scaleY = 1.0 * dimensions.height / originalDimensions.height;
-        console.log(location, scaleX, scaleY, dimensions);
         if (dimensions && dimensions.height && dimensions.width && location && location.x && location.y && pointerType && pointerType.type) {
             location.x = Math.floor(location.x * scaleX);
             location.y = Math.floor(location.y * scaleY);
-            console.log(location);
             const dynamicRadius = pointerType.size / 2 || 10; // You can set your desired dynamic radius here
             setDrawingPointerStyle({
                 display: '',
