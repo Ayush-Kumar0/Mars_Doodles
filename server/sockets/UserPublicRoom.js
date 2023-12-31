@@ -466,6 +466,7 @@ const serializeRoom = (player) => {
             hasStarted: room.hasStarted,
             roundsCompleted: room.roundsCompleted,
             totalRounds: room.totalRounds,
+            remainingTime: room.playerTime - (Date.now() - room.artStartTime),
         };
         return obj;
     } catch (err) {

@@ -70,6 +70,9 @@ function UserPrivateGame() {
             for (let plr of result.players) {
                 scoreObj[plr.id] = plr.score;
             }
+            if (result.artist && result.remainingTime > 0) {
+                setTimer(result.remainingTime);
+            }
             setCurrentResults(scoreObj);
             if (result.isGameOver) {
                 setWord('');

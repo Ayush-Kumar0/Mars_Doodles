@@ -458,6 +458,7 @@ const serializeRoom = (player) => {
             totalRounds: room.totalRounds,
             isChatEnabled: room.isChatEnabled,
             isGameOver: room.isGameOver,
+            remainingTime: room.playerTime - (Date.now() - room.artStartTime),
         };
         return obj;
     } catch (err) {

@@ -63,6 +63,9 @@ function GuestPublicGame() {
                 scoreObj[plr.id] = plr.score;
             }
             setCurrentResults(scoreObj);
+            if (result.artist && result.remainingTime > 0) {
+                setTimer(result.remainingTime);
+            }
         });
 
         return () => {
