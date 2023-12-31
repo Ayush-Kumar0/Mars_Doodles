@@ -109,6 +109,7 @@ function GuestPublicGame() {
 
         socket.on("provide-public-artist-over", (completeWord, artMaker) => {
             setWasIArtist(false);
+            setAmIArtist(false);
             setArtOverModalVisible(true);
             setRoundOverModalVisible(false);
             setArtOverMsg({

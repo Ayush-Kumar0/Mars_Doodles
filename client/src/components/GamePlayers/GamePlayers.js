@@ -36,7 +36,7 @@ function GamePlayers({ playersParent, socket, artistPlayer, adminPlayer, userGue
                         }}>
                         <img className={'profile_picture' + ((admin?.id === player.id) ? ' admin' : '')} src={(player && player.picture) ? player.picture : '/assets/no_profile_picture.svg'} />
                         <p>{player.name}</p>
-                        <p className='score'>{currentResults[player.id] || 0}</p>
+                        <p className='score'>{Math.floor(currentResults[player.id]) || 0}</p>
                         {artist && artist.id === player.id &&
                             <img className='draw_icon' src='/assets/draw_icon.svg' />}
                     </li>);
