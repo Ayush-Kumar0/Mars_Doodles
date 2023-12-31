@@ -48,8 +48,8 @@ module.exports.create = async function (req, res) {
     const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!\s).+/;
     if (password.length < 8 || passwordRegex.test(password) === false)
         return res.status(403).json({ message: 'Weak password', type: 'warning' });
-    if (await emailExists(email) === false)
-        return res.status(403).json({ message: 'Email not found', type: 'error' });
+    // if (await emailExists(email) === false)
+    //     return res.status(403).json({ message: 'Email not found', type: 'error' });
 
     // Database saving
     User.findOne({ email: email })
@@ -79,7 +79,7 @@ module.exports.create = async function (req, res) {
                             secure: true,
                             sameSite: 'None',
                             httpOnly: true,
-                            // domain: process.env.COOKIE_DOMAIN
+                            domain: process.env.COOKIE_DOMAIN
                         });
                         // Delete guest from db if guest is signing up
                         if (req.guest && req.guest._id) {
@@ -136,7 +136,7 @@ module.exports.createSession = function (req, res) {
                     secure: true,
                     sameSite: 'None',
                     httpOnly: true,
-                    // domain: process.env.COOKIE_DOMAIN
+                    domain: process.env.COOKIE_DOMAIN
                 });
                 // Delete guest from db if guest is signing in
                 if (req.guest && req.guest._id) {
@@ -205,7 +205,7 @@ module.exports.googleSignin = async function (req, res) {
                     secure: true,
                     sameSite: 'None',
                     httpOnly: true,
-                    // domain: process.env.COOKIE_DOMAIN
+                    domain: process.env.COOKIE_DOMAIN
                 });
                 // Delete guest from db if guest is signing in
                 if (req.guest && req.guest._id) {
@@ -249,7 +249,7 @@ module.exports.googleSignin = async function (req, res) {
                             secure: true,
                             sameSite: 'None',
                             httpOnly: true,
-                            // domain: process.env.COOKIE_DOMAIN
+                            domain: process.env.COOKIE_DOMAIN
                         });// Delete guest from db if guest is signing in
                         if (req.guest && req.guest._id) {
                             try {

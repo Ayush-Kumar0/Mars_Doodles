@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
 const dbName = process.env.DB_NAME || 'Mars_Doodles';
-mongoose.connect(`mongodb://0.0.0.0:27017/${dbName}`);
-// mongoose.connect(process.env.MONGO_URI);
+// mongoose.connect(`mongodb://0.0.0.0:27017/${dbName}`);
+mongoose.connect(process.env.MONGO_URI);
 
 const db = mongoose.connection;
 
