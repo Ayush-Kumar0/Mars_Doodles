@@ -60,6 +60,7 @@ class UserPublicRoom {
     artistEmail;
     artOverRequests;
     artStartTime;
+    artSessionTimer;
 
     hasStarted;
     isArtSessionOver;
@@ -120,6 +121,11 @@ class UserPublicRoom {
             // Partially remove the player
             this.roomPlayers.get(player.email).isPresent = false;
             this.roomSize--;
+            if (this.artistEmail === player.email) {
+                clearTimeout(this.artSessionTimer);
+                if (!this.isGameOver && this.isArtSessionOver === false)
+                    this.artSessionOver(io);
+            }
         }
         if (this.getSize() <= 1 && !this.isGameOver) {
             this.isGameOver = true;
@@ -241,8 +247,12 @@ class UserPublicRoom {
             clearInterval(this.hint);
             // Provide the word to all players
             const artistSocket = io.sockets.sockets.get(this.roomPlayers.get(this.artistEmail).sid);
-            artistSocket.broadcast.to(this.id).emit("provide-public-artist-over", this.currentWord, usersInfo[this.artistEmail]);
-            artistSocket.emit("provide-public-your-turn-over");
+            if (artistSocket) {
+                artistSocket.broadcast.to(this.id).emit("provide-public-artist-over", this.currentWord, usersInfo[this.artistEmail]);
+                artistSocket.emit("provide-public-your-turn-over");
+            } else {
+                io.to(this.id).emit("provide-public-artist-over", this.currentWord, usersInfo[this.artistEmail]);
+            }
             this.artistEmail = null;
             this.currentWord = null;
             this.getReadyForNextArtSession();
@@ -291,7 +301,7 @@ class UserPublicRoom {
             this.emitToNonArtists(io);
             this.emitToArtist(io);
             this.provideHints(io);
-            setTimeout(() => {
+            this.artSessionTimer = setTimeout(() => {
                 if (!this.isGameOver && this.isArtSessionOver === false)
                     this.artSessionOver(io);
             }, this.playerTime + latencyDelay);

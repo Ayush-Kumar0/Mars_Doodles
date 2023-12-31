@@ -121,8 +121,10 @@ function UserPrivateGame() {
         });
 
         socket.on("provide-private-artist-over", (completeWord, artMaker) => {
-            setArtOverModalVisible(true);
             setWasIArtist(false);
+            setArtist(null);
+            setArtOverModalVisible(true);
+            setRoundOverModalVisible(false);
             setArtOverMsg({
                 word: completeWord,
                 name: artMaker.name
@@ -130,16 +132,18 @@ function UserPrivateGame() {
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
             // setTimer(privateRoom.timeBtwArtSessions);
-            setTimer(0);
+            setTimer(undefined);
         });
         socket.on("provide-private-your-turn-over", () => {
             setWasIArtist(true);
             setAmIArtist(false);
+            setArtist(null);
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
             setArtOverModalVisible(true);
+            setRoundOverModalVisible(false);
             // setTimer(privateRoom.timeBtwArtSessions);
-            setTimer(0);
+            setTimer(undefined);
         });
 
         socket.on("provide-private-round-over", (result) => {
@@ -149,7 +153,7 @@ function UserPrivateGame() {
             setWaitingForNewArtist(false);
             setWaitingForNewRound(true);
             // setTimer(privateRoom.timeBtwRounds);
-            setTimer(0);
+            setTimer(undefined);
         });
 
         socket.on("provide-private-game-ended", (result) => {
@@ -341,7 +345,11 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
             }
         }
 
-        const animationFrame = requestAnimationFrame(animate);
+        let animationFrame
+        if (timer)
+            animationFrame = requestAnimationFrame(animate);
+        else
+            setTime(timer);
 
         return () => cancelAnimationFrame(animationFrame);
     }, [timer]);
@@ -363,7 +371,7 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
                 {roundsCompleted !== 0 ? `Round: ${roundsCompleted}/${totalRounds}` : ''}
             </span>
             &nbsp;
-            {getTime(time)}
+            {timer && getTime(time)}
         </span>
     );
 }

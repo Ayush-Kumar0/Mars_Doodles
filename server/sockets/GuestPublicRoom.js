@@ -60,6 +60,7 @@ class GuestPublicRoom {
     artistSid;
     artOverRequests;
     artStartTime;
+    artSessionTimer;
 
     hasStarted;
     isArtSessionOver;
@@ -113,6 +114,11 @@ class GuestPublicRoom {
             // Completely remove the player
             this.roomPlayers.delete(player.id);
             this.roomSize--;
+            if (this.artistSid === player.id) {
+                clearTimeout(this.artSessionTimer);
+                if (!this.isGameOver && this.isArtSessionOver === false)
+                    this.artSessionOver(io);
+            }
         }
         if (this.getSize() <= 1 && !this.isGameOver) {
             this.isGameOver = true;
@@ -288,7 +294,7 @@ class GuestPublicRoom {
             this.emitToNonArtists(io);
             this.emitToArtist(io);
             this.provideHints(io);
-            setTimeout(() => {
+            this.artSessionTimer = setTimeout(() => {
                 if (!this.isGameOver && this.isArtSessionOver === false)
                     this.artSessionOver(io);
             }, this.playerTime + latencyDelay);

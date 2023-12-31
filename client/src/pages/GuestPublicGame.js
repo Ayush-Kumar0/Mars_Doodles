@@ -110,6 +110,7 @@ function GuestPublicGame() {
         socket.on("provide-public-artist-over", (completeWord, artMaker) => {
             setWasIArtist(false);
             setAmIArtist(false);
+            setArtist(null);
             setArtOverModalVisible(true);
             setRoundOverModalVisible(false);
             setArtOverMsg({
@@ -119,17 +120,18 @@ function GuestPublicGame() {
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
             // setTimer(publicRoom.timeBtwArtSessions);
-            setTimer(0);
+            setTimer(undefined);
         });
         socket.on("provide-public-your-turn-over", () => {
             setWasIArtist(true);
             setAmIArtist(false);
+            setArtist(null);
             setWaitingForNewArtist(true);
             setWaitingForNewRound(false);
             setArtOverModalVisible(true);
             setRoundOverModalVisible(false);
             // setTimer(publicRoom.timeBtwArtSessions);
-            setTimer(0);
+            setTimer(undefined);
         });
 
         socket.on("provide-public-round-over", (result) => {
@@ -139,7 +141,7 @@ function GuestPublicGame() {
             setWaitingForNewArtist(false);
             setWaitingForNewRound(true);
             // setTimer(publicRoom.timeBtwRounds);
-            setTimer(0);
+            setTimer(undefined);
         });
 
         socket.on("provide-public-game-ended", (result) => {
@@ -292,7 +294,11 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
             }
         }
 
-        const animationFrame = requestAnimationFrame(animate);
+        let animationFrame;
+        if (timer)
+            animationFrame = requestAnimationFrame(animate);
+        else
+            setTime(timer);
 
         return () => cancelAnimationFrame(animationFrame);
     }, [timer]);
@@ -314,7 +320,7 @@ function Timer({ className, timer, roundsCompleted, totalRounds }) {
                 {roundsCompleted !== 0 ? `Round:${roundsCompleted}/${totalRounds}` : ''}
             </span>
             &nbsp;
-            {getTime(time)}
+            {timer && getTime(time)}
         </span>
     );
 }
