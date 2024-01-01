@@ -80,9 +80,9 @@ function Navbar() {
         <>
             <SideNav isGuest={player.type === 'guest'} icon='/assets/mars_doodles.png' url='#' alt='Mars Doodles'>
                 <NavItem link={`${prefix}/`}>Home</NavItem>
-                <NavItem link={`${prefix}/profile`}>Profile</NavItem>
+                {/* <NavItem link={`${prefix}/profile`}>Profile</NavItem>
                 <NavItem link={`${prefix}/store`}>Store</NavItem>
-                <NavItem link={`${prefix}/achievements`}>Achievements</NavItem>
+                <NavItem link={`${prefix}/achievements`}>Achievements</NavItem> */}
                 {player.type !== null && <NavItem onClick={handleLogout}>{player.type === 'guest' ? 'Delete' : 'Sign Out'}</NavItem>}
             </SideNav>
             <Loader visible={visible} />
