@@ -293,7 +293,7 @@ function UserPrivateGame() {
                     <ExportToImage onClick={exportImage}><img className='leavebuttonimg' src='/assets/exit_room.svg' /></ExportToImage>
                     <ShareId>{privateRoom?.shortid}{privateRoom?.shortid && <img className='clipboard' src='/assets/copy_to_clipboard.svg' onClick={copyToClipboard} />}</ShareId>
                     <span className='givenword'>{fullWord ? fullWord : word}</span>
-                    {isGameOver ? <span className='timer'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={privateRoom?.totalRounds} />}
+                    {isGameOver ? <span className='timer game-over'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={privateRoom?.totalRounds} />}
                 </Topbar>
                 <GamePlayers artistPlayer={artist} adminPlayer={admin} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest} kickPlayer={kickPlayer}></GamePlayers>
                 <Canva
@@ -424,6 +424,11 @@ const Topbar = styled.div`
         position: absolute;
         right: 0px;
         margin-right: 10px;
+        letter-spacing: 1px;
+        word-spacing: 2px;
+    }
+    .game-over {
+        font-size: small;
     }
 `;
 

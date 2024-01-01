@@ -20,7 +20,7 @@ function ArtSessionOver({ close, artOverMsg, wasIArtist }) {
 }
 
 const Paragraph = styled.p`
-    font-size: 20px;
+    font-size: 16px;
     text-align: center;
 
     .fullWord {
