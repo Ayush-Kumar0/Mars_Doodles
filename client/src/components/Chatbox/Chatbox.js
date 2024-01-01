@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
 function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPrivate, isChatEnabledParent }) {
@@ -7,6 +7,12 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
     const [userGuestId, setUserGuestId] = useState(null);
     const [amIArtist, setAmIArtist] = useState(amIArtistParent);
     const [isChatEnabled, setIsChatEnabled] = useState(isChatEnabledParent);
+    const chatListRef = useRef(null);
+    const scrollRef = useRef(null);
+
+    const isScrolledToBottom = () => {
+        return (chatListRef?.current?.scrollHeight - chatListRef?.current?.scrollTop) <= (chatListRef?.current?.clientHeight * 1.5);
+    }
 
 
     useEffect(() => {
@@ -32,7 +38,7 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
                 if (chat.guessed)
                     setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You guessed it : " + chat.message, className: 'youguessed' }]);
                 else
-                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message, matchFactor: chat.matchFactor, className: ('' + ((chat.matchFactor === 1) ? 'complete-match ' : '') + ((chat.matchFactor === 2) ? 'partial-match' : '')) }]);
             });
         } else {
             socket.on("provide-new-public-chat", (chat) => {
@@ -49,9 +55,12 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
                 if (chat.guessed)
                     setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: "You guessed it : " + chat.message, className: 'youguessed' }]);
                 else
-                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message }]);
+                    setChatMessages(prevChatMessages => [...prevChatMessages, { sender: chat.sender, message: chat.message, matchFactor: chat.matchFactor, className: ('' + ((chat.matchFactor === 1) ? 'complete-match ' : '') + ((chat.matchFactor === 2) ? 'partial-match' : '')) }]);
             });
         }
+
+        if (isScrolledToBottom())
+            scrollRef?.current.scrollIntoView();
 
         return () => {
             if (isPrivate) {
@@ -91,26 +100,41 @@ function Chatbox({ socket, userGuest, handleScoreStorage, amIArtistParent, isPri
         }
     }
 
+    const sendMessage = (e) => {
+        e.preventDefault();
+        if (text !== '') {
+            if (isPrivate)
+                socket.emit("send-new-private-chat", text);
+            else
+                socket.emit("send-new-public-chat", text);
+            setText('');
+        }
+    }
+
 
     let key = 0;
     return (
         <>
             <ChatBoxContainer>
                 <p className='heading'>Chat{!isChatEnabled && <img className='chatoff' src='/assets/chat_off.svg' />}</p>
-                <ChatList>
+                <ChatList ref={chatListRef}>
                     <ul>
                         {chatMessages && chatMessages.map(chatmsg => (
                             (chatmsg && chatmsg.sender && chatmsg.sender.id !== userGuestId)
-                                ? <li key={key++} className={chatmsg.className ? chatmsg.className : ''}><span className='sender'>{chatmsg.sender.name}:</span>&nbsp;<span className='message'>{chatmsg.message}</span></li>
-                                : <li key={key++} className={chatmsg.className ? chatmsg.className : ''}><span className='sender'>{"me"}:</span>&nbsp;<span className='message'>{chatmsg.message}</span></li>
+                                ? <li key={key++} className={'other ' + (chatmsg.className ? chatmsg.className : '')}><span className='sender'>:{chatmsg.sender.name}</span>&nbsp;<span className='message'>{chatmsg.message}</span></li>
+                                : <li key={key++} className={'me ' + (chatmsg.className ? chatmsg.className : '')}><span className='sender'>{chatmsg.sender.name}:</span>&nbsp;<span className='message'>{chatmsg.message}<span>&nbsp;{(chatmsg.matchFactor === 1) ? '(Already guessed)' : (chatmsg.matchFactor === 2) ? '(Near match)' : ''}</span></span></li>
                         ))}
+                        <span ref={scrollRef}></span>
                         {/* <li><span className='sender'>Ayush:</span>&nbsp;<span className='message'>Orange</span></li> */}
                     </ul>
                 </ChatList>
-                {amIArtist ?
-                    <input id='chatinput' placeholder='Enter text' value={text} onChange={(e) => { setText(e.target.value) }} onKeyDown={handleSendMessage} disabled /> :
-                    <input id='chatinput' placeholder='Enter text' value={text} onChange={(e) => { setText(e.target.value) }} onKeyDown={handleSendMessage} />
-                }
+                <ChatInput>
+                    {amIArtist ?
+                        <input id='chatinput' placeholder='Enter text' value={text} onChange={(e) => { setText(e.target.value) }} onKeyDown={handleSendMessage} disabled /> :
+                        <input id='chatinput' placeholder='Enter text' value={text} onChange={(e) => { setText(e.target.value) }} onKeyDown={handleSendMessage} />
+                    }
+                    <img onClick={sendMessage} className='' src='/assets/send_icon.svg' />
+                </ChatInput>
             </ChatBoxContainer>
         </>
     );
@@ -141,20 +165,47 @@ const ChatBoxContainer = styled.div`
         text-decoration: underline;
     }
 
-    #chatinput {
-        width: 100%;
-        height: var(--chatinput-height);
-        outline: none;
-        border: none;
-        box-sizing: border-box;
-        border-top: 2px solid var(--primary);
-        padding-left: 5px;
-        padding-right: 5px;
-    }
-
     .chatoff {
         position: absolute;
         padding-left: 5px;
+    }
+`;
+
+
+const ChatInput = styled.div`
+    width: 100%;
+    height: var(--chatinput-height);
+    border-top: 2px solid var(--primary);
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    #chatinput {
+        height: 100%;
+        outline: none;
+        border: none;
+        padding-left: 5px;
+        padding-right: 5px;
+        width: inherit;
+    }
+    img {
+        height: 100%;
+        cursor: pointer;
+    }
+    img:active {
+        animation: pulse 0.3s ease;
+    }
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(0.9);
+        }
+        100% {
+            transform: scale(1);
+        }
     }
 `;
 
@@ -189,14 +240,27 @@ const ChatList = styled.div`
             }
             .message {
                 color: var(--obsidian);
+                span {
+                    color: var(--chatred);
+                }
             }
+        }
+
+        .me {
+        }
+        .other {
+            display: flex;
+            flex-direction: row-reverse;
         }
 
         .youguessed {
             background-color: var(--chatgreen);
         }
         .otherguessed {
-            background-color: var(--chatred);
+            background-color: var(--chatgreen);
+        }
+        .complete-match,.partial-match {
+            background-color: unset;
         }
     }
 `;
