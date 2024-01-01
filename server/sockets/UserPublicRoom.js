@@ -11,10 +11,10 @@ const usersInfo = require('./data').usersInfo; // { email: {id, name, type, pict
 const removeObjectKey = require('./utils').removeObjectKey;
 
 
-const startLimit = 2, roomLimit = 31;
-const defaultPlayerTime = 120000, defaultTimeBtwRounds = 5000, defaultTimeBtwArtSessions = 3000;
-const defaultTotalRounds = 2, defaultPercentWordReveal = 1;
-const latencyDelay = 2000; // Latency should always be less than time between session
+const startLimit = 2, roomLimit = 32;
+const defaultPlayerTime = 1 * 120 * 1000, defaultTimeBtwRounds = 10000, defaultTimeBtwArtSessions = 3000;
+const defaultTotalRounds = 5, defaultPercentWordReveal = 1;
+const latencyDelay = 1000; // Latency should always be less than time between session
 
 
 
@@ -149,7 +149,7 @@ class UserPublicRoom {
                         let timediff = Date.now() - this.artStartTime;
                         let factors = [1.69, 1.44, 1.21, 1.0];
                         let playerScore = Math.floor(((this.playerTime - timediff) / this.playerTime) * 120 + 10);
-                        let artistScore = Math.floor(factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore / (this.getSize() > 0 ? this.getSize() : 1));
+                        let artistScore = Math.floor(0.4 * factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore / (this.getSize() > 0 ? this.getSize() : 1));
                         return [playerScore, artistScore];
                     }
                     const [playerScore, artistScore] = calcScore();

@@ -12,9 +12,9 @@ const removeObjectKey = require('./utils').removeObjectKey;
 
 
 const startLimit = 2, roomLimit = 16;
-const defaultPlayerTime = 1 * 60 * 1000, defaultTimeBtwRounds = 10000, defaultTimeBtwArtSessions = 5000;
-const defaultTotalRounds = 2, defaultPercentWordReveal = 1;
-const latencyDelay = 3000; // Latency should always be less than time between session
+const defaultPlayerTime = 1 * 90 * 1000, defaultTimeBtwRounds = 10000, defaultTimeBtwArtSessions = 3000;
+const defaultTotalRounds = 4, defaultPercentWordReveal = 1;
+const latencyDelay = 1000; // Latency should always be less than time between session
 
 
 
@@ -142,7 +142,7 @@ class GuestPublicRoom {
                         let timediff = Date.now() - this.artStartTime;
                         let factors = [1.69, 1.44, 1.21, 1.0];
                         let playerScore = Math.floor(((this.playerTime - timediff) / this.playerTime) * 120 + 10);
-                        let artistScore = Math.floor(factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore / (this.getSize() > 0 ? this.getSize() : 1));
+                        let artistScore = Math.floor(0.4 * factors[Math.floor(factors.length * timediff / this.playerTime + 0)] * playerScore / (this.getSize() > 0 ? this.getSize() : 1));
                         return [playerScore, artistScore];
                     }
                     const [playerScore, artistScore] = calcScore();
