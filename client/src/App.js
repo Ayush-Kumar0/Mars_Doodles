@@ -2,12 +2,12 @@ import { ToastContainer } from 'react-toastify';
 import './App.css';
 import AuthState from './contexts/auth/authState';
 import AppRoutes from './routes/AppRoutes';
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 
 function App() {
   return (
     <>
-      <BrowserRouter>
+      <HashRouter>
         <AuthState>
           <AppRoutes />
           <ToastContainer
@@ -23,7 +23,7 @@ function App() {
             theme="light"
           />
         </AuthState>
-      </BrowserRouter>
+      </HashRouter>
     </>
   );
 }

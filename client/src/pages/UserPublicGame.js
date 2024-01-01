@@ -250,7 +250,7 @@ function UserPublicGame() {
                     <Leave onClick={exitRoom}><img src='/assets/exit_room.svg' /></Leave>
                     <ExportToImage onClick={exportImage}><img src='/assets/exit_room.svg' /></ExportToImage>
                     <span>{fullWord ? fullWord : word}</span>
-                    {isGameOver ? <span className='timer'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={publicRoom?.totalRounds} />}
+                    {isGameOver ? <span className='timer game-over'>Game Over</span> : <Timer className='timer' timer={timer} roundsCompleted={round} totalRounds={publicRoom?.totalRounds} />}
                 </Topbar>
                 <GamePlayers artistPlayer={artist} playersParent={players} currentResults={currentResults} socket={socket} userGuest={userGuest}></GamePlayers>
                 <Canva
@@ -374,6 +374,11 @@ const Topbar = styled.div`
         position: absolute;
         right: 0px;
         margin-right: 10px;
+        letter-spacing: 1px;
+        word-spacing: 2px;
+    }
+    .game-over {
+        font-size: small;
     }
 `;
 

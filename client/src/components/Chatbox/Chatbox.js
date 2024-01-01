@@ -192,6 +192,7 @@ const ChatInput = styled.div`
     img {
         height: 100%;
         cursor: pointer;
+        background-color: white;
     }
     img:active {
         animation: pulse 0.3s ease;

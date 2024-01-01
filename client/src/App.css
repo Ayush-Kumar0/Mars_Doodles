@@ -1,3 +1,17 @@
+::-webkit-scrollbar {
+    width: 7px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: #eaeaea;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background-color: #b7b7b7;
+}
+
+
 html,
 body {
     /* width: 100vw; */
@@ -5,6 +19,8 @@ body {
     margin: 0px;
     padding: 0px;
     font-family: 'Roboto', sans-serif;
+    scrollbar-color: dark;
+    scrollbar-width: thin;
 }
 
 * {

@@ -36,11 +36,11 @@ function RoundOver({ close, currentRoundScore, players }) {
     return (
         <Modal2 close={close}>
             <Container>
-                <h2>Round results:</h2>
+                <h2>Round Results</h2>
                 <table>
                     <thead>
                         <tr>
-                            <th>Player name</th>
+                            <th>Player</th>
                             <th>Score</th>
                         </tr>
                     </thead>
@@ -63,10 +63,20 @@ function RoundOver({ close, currentRoundScore, players }) {
 }
 
 const Container = styled.div`
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
+    font-size: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    table {
+        border-collapse: collapse;
+    }
+    th,td {
+        border: 1px solid gray;
+        padding: 2px;
+        padding-left: 5px;
+        padding-right: 5px;
+    }
 `;
 
 export default RoundOver;
